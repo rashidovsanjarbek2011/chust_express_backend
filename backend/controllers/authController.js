@@ -1,0 +1,391 @@
+// controllers/authController.js
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const {
+  generateUniqueCode,
+  generateLegacyCode,
+  generateDeliveryCode,
+  generateManagerCode,
+} = require("../utils/codeGenerator");
+const { validateDeliveryCode } = require("../services/deliveryCodeService");
+
+/**
+ * JWT token yaratish
+ */
+const generateToken = (id, role) => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error("JWT_SECRET environment variable topilmadi!");
+  }
+  return jwt.sign({ id, role }, process.env.JWT_SECRET);
+};
+
+// ====================================
+// 1. Oddiy foydalanuvchi ro'yxatdan o'tishi
+// ====================================
+const registerUser = async (req, res) => {
+  const { username, email, password, cardNumber, address, phoneNumber } = req.body;
+
+  if (!username || !email || !password || !cardNumber || !address || !phoneNumber) {
+    return res.status(400).json({
+      success: false,
+      message:
+        "Barcha maydonlar, jumladan karta raqami va manzil to'ldirilishi shart.",
+    });
+  }
+
+  try {
+    const cleanEmail = email.toLowerCase().trim();
+    const cleanUsername = username.trim();
+
+    // Email mavjudligini tekshirish
+    const existingEmail = await req.prisma.user.findUnique({
+      where: { email: cleanEmail },
+    });
+    if (existingEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "Bu email allaqachon ro'yxatdan o'tgan.",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    const user = await req.prisma.user.create({
+      data: {
+        username: cleanUsername,
+        email: cleanEmail,
+        password: hashedPassword,
+        role: "user",
+        uniqueCode: generateUniqueCode(),
+        legacyCode: generateLegacyCode(),
+        managerCode: generateManagerCode(),
+        deliveryCode: generateDeliveryCode(),
+        cardNumber: cardNumber.replace(/\s/g, ""), // Remove spaces
+        address: address, // Save address
+        phoneNumber: phoneNumber, // Save phone number
+      },
+    });
+
+    const token = generateToken(user.id, user.role);
+
+    res.status(201).json({
+      success: true,
+      data: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        uniqueCode: user.uniqueCode,
+        legacyCode: user.legacyCode,
+        managerCode: user.managerCode,
+        deliveryCode: user.deliveryCode,
+        phoneNumber: user.phoneNumber,
+      },
+      token,
+    });
+  } catch (error) {
+    console.error("❌ registerUser Error:", error);
+    // Handle Prisma unique constraint error (duplicate username or email)
+    if (error.code === "P2002" && error.meta) {
+      const target = Array.isArray(error.meta.target)
+        ? error.meta.target.join(", ")
+        : error.meta.target;
+      return res.status(400).json({
+        success: false,
+        message: `Unique constraint failed: ${target}`,
+      });
+    }
+    const message =
+      process.env.NODE_ENV === "development"
+        ? error.message
+        : "Serverda xatolik.";
+    res.status(500).json({ success: false, message });
+  }
+};
+
+// ====================================
+// 2. Login (Hamma rollar uchun)
+// ====================================
+const loginUser = async (req, res) => {
+  const {
+    email,
+    password,
+    uniqueCode,
+    legacyCode,
+    deliveryCode,
+    adminCode,
+    managerCode,
+  } = req.body;
+
+  if (!email || !password) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Ma'lumotlar to'liq emas." });
+  }
+
+  try {
+    const user = await req.prisma.user.findUnique({
+      where: { email: email.toLowerCase().trim() },
+    });
+
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Email yoki parol noto'g'ri." });
+    }
+
+    let finalRole = user.role;
+
+    // Admin, Shop Worker, Shop Owner va Kuryer kodi tekshiruvlari
+    if (adminCode && adminCode.trim() === process.env.ADMIN_CODE) {
+      finalRole = "administrator";
+    } else if (uniqueCode && uniqueCode.trim() === user.uniqueCode) {
+      finalRole = "shop_worker";
+    } else if (legacyCode && legacyCode.trim() === user.legacyCode) {
+      finalRole = "shop_owner";
+    } else if (managerCode && managerCode.trim()) {
+      const validManagerCode = await req.prisma.managerCode.findFirst({
+        where: { code: managerCode.trim(), isActive: true },
+      });
+      if (validManagerCode) finalRole = "manager";
+    } else if (deliveryCode && deliveryCode.trim()) {
+      const validDeliveryCode = await req.prisma.deliveryCode.findFirst({
+        where: { code: deliveryCode.trim(), isActive: true },
+      });
+      if (validDeliveryCode) finalRole = "delivery";
+    }
+
+    // Rol o'zgargan bo'lsa yangilash
+    // Shuningdek, agar login paytida isDelivery yoki address kelsa, ularni ham yangilash
+    const { isDelivery, address } = req.body;
+    const updateData = {};
+
+    if (user.role !== finalRole) {
+      updateData.role = finalRole;
+    }
+    if (isDelivery !== undefined) {
+      updateData.isDelivery = isDelivery;
+    }
+    if (address !== undefined && address.trim() !== "") {
+      updateData.address = address;
+    }
+
+    if (Object.keys(updateData).length > 0) {
+      await req.prisma.user.update({
+        where: { id: user.id },
+        data: updateData,
+      });
+      // Update local user object to reflect changes in response
+      if (updateData.role) user.role = updateData.role;
+      if (updateData.isDelivery !== undefined)
+        user.isDelivery = updateData.isDelivery;
+      if (updateData.address) user.address = updateData.address;
+    }
+
+    const token = generateToken(user.id, finalRole);
+    res.status(200).json({
+      success: true,
+      token,
+      role: finalRole,
+      data: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: finalRole,
+        uniqueCode: user.uniqueCode,
+        legacyCode: user.legacyCode,
+        deliveryCode: user.deliveryCode,
+        shopId: user.shopId,
+        address: user.address,
+        isDelivery: user.isDelivery,
+      },
+    });
+  } catch (error) {
+    console.error("❌ loginUser Error:", error.message);
+    res.status(500).json({ success: false, message: "Serverda xatolik." });
+  }
+};
+
+// ====================================
+// 3. GET /api/auth/me - FIXED VERSION
+// ====================================
+const getMe = async (req, res) => {
+  try {
+    // console.log("🔍 Getting user with ID:", req.user.id);
+
+    const user = await req.prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        address: true,
+        phoneNumber: true,
+        role: true,
+        uniqueCode: true,
+        legacyCode: true,
+        deliveryCode: true,
+        isDelivery: true,
+        vehicleType: true,
+        latitude: true,
+        longitude: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "Foydalanuvchi topilmadi.",
+      });
+    }
+
+    res.status(200).json({ success: true, data: user });
+  } catch (error) {
+    console.error("❌ getMe error:", error.message);
+    console.error("Full error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Serverda xatolik yuz berdi.",
+      error: error.message,
+    });
+  }
+};
+
+// ====================================
+// 4. Do'kon xodimi ro'yxatdan o'tishi
+// ====================================
+const registerShopWorker = async (req, res) => {
+  const { username, email, password, address, isDelivery } = req.body;
+  try {
+    const hashedPassword = await bcrypt.hash(password, 12);
+    const worker = await req.prisma.user.create({
+      data: {
+        username,
+        email: email.toLowerCase(),
+        password: hashedPassword,
+        role: "shop_worker",
+        uniqueCode: generateUniqueCode(),
+        address,
+        isDelivery: !!isDelivery,
+      },
+    });
+
+    res.status(201).json({ success: true, data: worker });
+  } catch (error) {
+    console.error("❌ registerShopWorker error:", error.message);
+    res.status(500).json({ success: false, message: "Xatolik." });
+  }
+};
+
+// ====================================
+// 5. Do'kon egasi ro'yxatdan o'tishi
+// ====================================
+const registerShopOwner = async (req, res) => {
+  const { username, email, password, address, isDelivery } = req.body;
+  try {
+    const hashedPassword = await bcrypt.hash(password, 12);
+    const owner = await req.prisma.user.create({
+      data: {
+        username,
+        email: email.toLowerCase(),
+        password: hashedPassword,
+        role: "shop_owner",
+        legacyCode: generateLegacyCode(),
+        address,
+        isDelivery: !!isDelivery,
+      },
+    });
+
+    res.status(201).json({ success: true, data: owner });
+  } catch (error) {
+    console.error("❌ registerShopOwner error:", error.message);
+    res.status(500).json({ success: false, message: "Xatolik." });
+  }
+};
+
+// ====================================
+// 6. Profil yangilash (Lokatsiya)
+// ====================================
+const updateProfile = async (req, res) => {
+  const { latitude, longitude, address, isDelivery } = req.body;
+  try {
+    const user = await req.prisma.user.update({
+      where: { id: req.user.id },
+      data: {
+        latitude: latitude ? parseFloat(latitude) : undefined,
+        longitude: longitude ? parseFloat(longitude) : undefined,
+        address: address,
+        isDelivery: isDelivery !== undefined ? isDelivery : undefined,
+      },
+    });
+
+    res.status(200).json({ success: true, data: user });
+  } catch (error) {
+    console.error("❌ updateProfile error:", error.message);
+    res.status(500).json({ success: false, message: "Profil yangilanmadi." });
+  }
+};
+
+// ====================================
+// 7. Kuryer ro'yxatdan o'tishi
+// ====================================
+const registerDelivery = async (req, res) => {
+  const { username, email, password } = req.body;
+  try {
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    // Unikal kuryer kodi yaratish
+    let uniqueDeliveryCode = generateDeliveryCode();
+
+    const user = await req.prisma.user.create({
+      data: {
+        username,
+        email: email.toLowerCase(),
+        password: hashedPassword,
+        role: "delivery",
+        isDelivery: true,
+        deliveryCode: uniqueDeliveryCode,
+      },
+    });
+
+    const token = generateToken(user.id, user.role);
+    res.status(201).json({ success: true, data: user, token });
+  } catch (error) {
+    console.error("❌ registerDelivery error:", error.message);
+    res
+      .status(500)
+      .json({ success: false, message: "Kuryer ro'yxatdan o'tmadi." });
+  }
+};
+
+// ====================================
+// 8. Kuryer transport turini tanlashi
+// ====================================
+const updateDeliveryVehicle = async (req, res) => {
+  const { vehicleType } = req.body;
+  try {
+    const user = await req.prisma.user.update({
+      where: { id: req.user.id },
+      data: { vehicleType },
+    });
+
+    res.status(200).json({ success: true, data: user });
+  } catch (error) {
+    console.error("❌ updateDeliveryVehicle error:", error.message);
+    res.status(500).json({ success: false, message: "Xatolik." });
+  }
+};
+
+// --- EKSPORTLAR ---
+module.exports = {
+  registerUser,
+  loginUser,
+  getMe,
+  registerShopWorker,
+  registerShopOwner,
+  updateProfile,
+  registerDelivery,
+  updateDeliveryVehicle,
+};

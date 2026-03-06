@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "DeliveryType" ADD COLUMN     "basePrice" DOUBLE PRECISION NOT NULL DEFAULT 0;

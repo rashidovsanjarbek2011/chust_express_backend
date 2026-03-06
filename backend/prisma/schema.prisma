@@ -1,0 +1,170 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int           @id @default(autoincrement())
+  username     String        @unique
+  email        String        @unique
+  password     String
+  name         String?
+  role         String        @default("user")
+  uniqueCode   String?
+  legacyCode   String?
+  deliveryCode String?
+  shopId       Int?
+  isDelivery   Boolean       @default(false)
+  isPaused     Boolean       @default(false)
+  vehicleType  String?
+  latitude     Float?
+  longitude    Float?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  managerCode  String?
+  address      String?
+  cardNumber   String?
+  phoneNumber  String?
+  deliveries   Delivery[]
+  deliveryCars DeliveryCar[]
+  orders       Order[]
+  products     Product[]
+}
+
+model Shop {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Product {
+  id            Int         @id @default(autoincrement())
+  name          String
+  description   String?
+  price         Float
+  stock         Int         @default(0)
+  weight        Float?      @default(1.0)
+  image         String?
+  category      String?     @default("Not Selected")
+  isActive      Boolean     @default(true)
+  ownerId       Int
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  currency      String      @default("UZS")
+  deliveryPrice Float       @default(0.0)
+  unit          String      @default("pcs")
+  shopAddress   String?
+
+  orderItems    OrderItem[]
+  owner         User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+}
+
+model Order {
+  id              Int           @id @default(autoincrement())
+  userId          Int
+  shippingAddress String
+  paymentMethod   String?
+  subtotalPrice   Float         @default(0)
+  shippingPrice   Float         @default(0)
+  totalPrice      Float         @default(0)
+  isPaid          Boolean       @default(false)
+  paidAt          DateTime?
+  orderStatus     String        @default("Pending")
+  deliveryTypeId  Int?
+  deliveryId      Int?
+  latitude        Float?
+  longitude       Float?
+  originLat       Float?
+  originLng       Float?
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  delivery        Delivery?
+  deliveryType    DeliveryType? @relation(fields: [deliveryTypeId], references: [id])
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items           OrderItem[]
+}
+
+model OrderItem {
+  id        Int      @id @default(autoincrement())
+  orderId   Int
+  productId Int
+  quantity  Int
+  price     Float
+  name      String?
+  weight    Float?   @default(1.0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model DeliveryType {
+  id              Int      @id @default(autoincrement())
+  typeName        String
+  baseCostPerKm   Float    @default(0)
+  minWeightKg     Float    @default(0)
+  maxWeightKg     Float    @default(1000)
+  maxDistanceKm   Float    @default(100)
+  vehicleRequired Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  basePrice       Float    @default(0)
+  orders          Order[]
+}
+
+model Delivery {
+  id               Int          @id @default(autoincrement())
+  orderId          Int          @unique
+  driverId         Int?
+  deliveryCarId    Int?
+  deliveryStatus   String       @default("Pending")
+  assignedAt       DateTime?
+  pickedUpAt       DateTime?
+  deliveredAt      DateTime?
+  currentLatitude  Float?
+  currentLongitude Float?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  deliveryCar      DeliveryCar? @relation(fields: [deliveryCarId], references: [id])
+  driver           User?        @relation(fields: [driverId], references: [id])
+  order            Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model DeliveryCar {
+  id          Int        @id @default(autoincrement())
+  carNumber   String     @unique
+  carModel    String
+  driverName  String?
+  driverPhone String?
+  carStatus   String     @default("Available")
+  isActive    Boolean    @default(true)
+  driverId    Int?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  deliveries  Delivery[]
+  driver      User?      @relation(fields: [driverId], references: [id])
+}
+
+model DeliveryCode {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique
+  isActive  Boolean  @default(true)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ManagerCode {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique
+  isActive  Boolean  @default(true)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
