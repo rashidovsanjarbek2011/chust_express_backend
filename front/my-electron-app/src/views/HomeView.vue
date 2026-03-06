@@ -221,7 +221,7 @@ export default {
         // CHANGED: Direct call to backend port 5000
         // Use relative path to leverage Vite proxy
         const response = await axios.get("/api/products", {
-          timeout: 10000,
+          timeout: 60000,
         });
 
         if (response.data.success) {
