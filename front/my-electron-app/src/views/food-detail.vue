@@ -600,11 +600,11 @@ export default {
       this.error = null;
 
       try {
-        const id = this.route.params.id;
+        const productId = this.route.params.id;
 
         // Fetch from your backend API
-        const response = await axios.get(`/api/products/${id}`, {
-          timeout: 5000,
+        const response = await axios.get(`/api/products/${productId}`, {
+          timeout: 60000,
         });
 
         // Handle different response formats
