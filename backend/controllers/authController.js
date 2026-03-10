@@ -144,15 +144,37 @@ const loginUser = async (req, res) => {
     } else if (legacyCode && legacyCode.trim() === user.legacyCode) {
       finalRole = "shop_owner";
     } else if (managerCode && managerCode.trim()) {
-      const validManagerCode = await req.prisma.managerCode.findFirst({
-        where: { code: managerCode.trim(), isActive: true },
-      });
-      if (validManagerCode) finalRole = "manager";
+      const codeTrimmed = managerCode.trim();
+      let isValidManager = false;
+      
+      // Check if it matches user's own manager code
+      if (codeTrimmed === user.managerCode) {
+        isValidManager = true;
+      } else {
+        // Otherwise check the global ManagerCode table
+        const validManagerCode = await req.prisma.managerCode.findFirst({
+          where: { code: codeTrimmed, isActive: true },
+        });
+        if (validManagerCode) isValidManager = true;
+      }
+      
+      if (isValidManager) finalRole = "manager";
     } else if (deliveryCode && deliveryCode.trim()) {
-      const validDeliveryCode = await req.prisma.deliveryCode.findFirst({
-        where: { code: deliveryCode.trim(), isActive: true },
-      });
-      if (validDeliveryCode) finalRole = "delivery";
+      const codeTrimmed = deliveryCode.trim();
+      let isValidDelivery = false;
+      
+      // Check if it matches user's own delivery code
+      if (codeTrimmed === user.deliveryCode) {
+        isValidDelivery = true;
+      } else {
+        // Otherwise check global DeliveryCode table
+        const validDeliveryCode = await req.prisma.deliveryCode.findFirst({
+          where: { code: codeTrimmed, isActive: true },
+        });
+        if (validDeliveryCode) isValidDelivery = true;
+      }
+      
+      if (isValidDelivery) finalRole = "delivery";
     }
 
     // Rol o'zgargan bo'lsa yangilash
