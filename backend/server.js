@@ -18,23 +18,11 @@ const app = express();
 const server = http.createServer(app); // 👈 NEW: create HTTP server
 
 // ======================
-// 🔥 CORS CONFIGURATION (unchanged)
+// 🔥 CORS CONFIGURATION (modified to allow all origins dynamically)
 // ======================
-const rawOrigins =
-  process.env.ALLOWED_ORIGINS ||
-  "http://localhost:5173,http://localhost:5174,http://localhost:5175 , http://192.168.1.9:5173 , ";
-const allowedOrigins = rawOrigins.split(/[ ,]+/).map((o) => o.trim());
-
 app.use(
   cors({
-    origin: function (origin, callback) {
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.indexOf(origin) !== -1) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
+    origin: true, // Allow any origin dynamically
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: [
@@ -56,7 +44,7 @@ app.use(
 // ======================
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins, // reuse your allowed origins
+    origin: true, // Allow any origin dynamically
     methods: ["GET", "POST"],
     credentials: true,
   },
