@@ -12,6 +12,7 @@ const {
   updateProfile,
   registerDelivery,
   updateDeliveryVehicle,
+  validateDeliveryCodeAction,
 } = require("../controllers/authController");
 
 // Middleware
@@ -33,6 +34,7 @@ const authLimiter = rateLimit({
 router.post("/register", authLimiter, registerUser);
 router.post("/login", authLimiter, loginUser);
 router.post("/register/delivery", registerDelivery);
+router.post("/validate-delivery-code", validateDeliveryCodeAction);
 
 // ======================
 // 🔐 Protected routes

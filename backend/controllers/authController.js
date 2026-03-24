@@ -23,7 +23,7 @@ const generateToken = (id, role) => {
 // 1. Oddiy foydalanuvchi ro'yxatdan o'tishi
 // ====================================
 const registerUser = async (req, res) => {
-  const { username, email, password, cardNumber, address, phoneNumber } = req.body;
+  const { username, email, password, cardNumber, address, phoneNumber, workingRegion } = req.body;
 
   if (!username || !email || !password || !cardNumber || !address || !phoneNumber) {
     return res.status(400).json({
@@ -63,6 +63,7 @@ const registerUser = async (req, res) => {
         cardNumber: cardNumber.replace(/\s/g, ""), // Remove spaces
         address: address, // Save address
         phoneNumber: phoneNumber, // Save phone number
+        workingRegion: workingRegion, // Save working region if provided
       },
     });
 
@@ -115,6 +116,7 @@ const loginUser = async (req, res) => {
     deliveryCode,
     adminCode,
     managerCode,
+    workingRegion,
   } = req.body;
 
   if (!email || !password) {
@@ -178,8 +180,8 @@ const loginUser = async (req, res) => {
     }
 
     // Rol o'zgargan bo'lsa yangilash
-    // Shuningdek, agar login paytida isDelivery yoki address kelsa, ularni ham yangilash
-    const { isDelivery, address } = req.body;
+    // Shuningdek, agar login paytida isDelivery, address yoki workingRegion kelsa, ularni ham yangilash
+    const { isDelivery, address, workingRegion } = req.body;
     const updateData = {};
 
     if (user.role !== finalRole) {
@@ -190,6 +192,9 @@ const loginUser = async (req, res) => {
     }
     if (address !== undefined && address.trim() !== "") {
       updateData.address = address;
+    }
+    if (workingRegion !== undefined && workingRegion.trim() !== "") {
+      updateData.workingRegion = workingRegion;
     }
 
     if (Object.keys(updateData).length > 0) {
@@ -202,6 +207,7 @@ const loginUser = async (req, res) => {
       if (updateData.isDelivery !== undefined)
         user.isDelivery = updateData.isDelivery;
       if (updateData.address) user.address = updateData.address;
+      if (updateData.workingRegion) user.workingRegion = updateData.workingRegion;
     }
 
     const token = generateToken(user.id, finalRole);
@@ -219,6 +225,7 @@ const loginUser = async (req, res) => {
         deliveryCode: user.deliveryCode,
         shopId: user.shopId,
         address: user.address,
+        workingRegion: user.workingRegion,
         isDelivery: user.isDelivery,
       },
     });
@@ -242,6 +249,7 @@ const getMe = async (req, res) => {
         username: true,
         email: true,
         address: true,
+        workingRegion: true,
         phoneNumber: true,
         role: true,
         uniqueCode: true,
@@ -354,7 +362,7 @@ const updateProfile = async (req, res) => {
 // 7. Kuryer ro'yxatdan o'tishi
 // ====================================
 const registerDelivery = async (req, res) => {
-  const { username, email, password } = req.body;
+  const { username, email, password, workingRegion } = req.body;
   try {
     const hashedPassword = await bcrypt.hash(password, 12);
 
@@ -369,6 +377,7 @@ const registerDelivery = async (req, res) => {
         role: "delivery",
         isDelivery: true,
         deliveryCode: uniqueDeliveryCode,
+        workingRegion: workingRegion,
       },
     });
 
@@ -400,6 +409,46 @@ const updateDeliveryVehicle = async (req, res) => {
   }
 };
 
+// ====================================
+// 9. Kuryer kodini tekshirish (Real-time)
+// ====================================
+const validateDeliveryCodeAction = async (req, res) => {
+  const { email, code } = req.body;
+
+  if (!code) {
+    return res.status(400).json({ success: false, message: "Kod kiritilmadi." });
+  }
+
+  try {
+    const codeTrimmed = code.trim();
+    let isValid = false;
+
+    // 1. Agar email bo'lsa, foydalanuvchining o'z kodini tekshirish
+    if (email) {
+      const user = await req.prisma.user.findUnique({
+        where: { email: email.toLowerCase().trim() },
+        select: { deliveryCode: true },
+      });
+      if (user && user.deliveryCode === codeTrimmed) {
+        isValid = true;
+      }
+    }
+
+    // 2. Agar foydalanuvchi kodi bo'lmasa, global jadvaldan qidirish
+    if (!isValid) {
+      const globalCode = await req.prisma.deliveryCode.findFirst({
+        where: { code: codeTrimmed, isActive: true },
+      });
+      if (globalCode) isValid = true;
+    }
+
+    res.status(200).json({ success: true, isValid });
+  } catch (error) {
+    console.error("❌ validateDeliveryCode Error:", error.message);
+    res.status(500).json({ success: false, message: "Serverda xatolik." });
+  }
+};
+
 // --- EKSPORTLAR ---
 module.exports = {
   registerUser,
@@ -410,4 +459,5 @@ module.exports = {
   updateProfile,
   registerDelivery,
   updateDeliveryVehicle,
+  validateDeliveryCodeAction,
 };
