@@ -242,27 +242,9 @@ const getMe = async (req, res) => {
   try {
     // console.log("🔍 Getting user with ID:", req.user.id);
 
-    const user = await req.prisma.user.findUnique({
-      where: { id: req.user.id },
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        address: true,
-        workingRegion: true,
-        phoneNumber: true,
-        role: true,
-        uniqueCode: true,
-        legacyCode: true,
-        deliveryCode: true,
-        isDelivery: true,
-        vehicleType: true,
-        latitude: true,
-        longitude: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+    // Boshqa barcha ma'lumotlarni Raw Query orqali olish (Schema sync xatoliklarini chetlab o'tish uchun)
+    const users = await req.prisma.$queryRaw`SELECT * FROM "User" WHERE id = ${req.user.id}`;
+    const user = users && users.length > 0 ? users[0] : null;
 
     if (!user) {
       return res.status(404).json({
@@ -270,6 +252,9 @@ const getMe = async (req, res) => {
         message: "Foydalanuvchi topilmadi.",
       });
     }
+
+    // Password'ni olib tashlash
+    delete user.password;
 
     res.status(200).json({ success: true, data: user });
   } catch (error) {
