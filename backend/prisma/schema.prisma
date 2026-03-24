@@ -27,6 +27,7 @@ model User {
   updatedAt    DateTime      @updatedAt
   managerCode  String?
   address      String?
+  workingRegion String?
   cardNumber   String?
   phoneNumber  String?
   deliveries   Delivery[]
