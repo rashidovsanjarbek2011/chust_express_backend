@@ -17,12 +17,12 @@ export default defineConfig({
     proxy: {
       // Rule: When the frontend requests anything starting with /api
       "/api": {
-        target: "https://chust-express-backend.onrender.com", // Forward it to your Node.js backend
+        target: "http://localhost:5000", // Forward it to your Node.js backend
         changeOrigin: true, // Needed for virtual hosting
         secure: false, // Since it's local HTTP
       },
       "/uploads": {
-        target: "https://chust-express-backend.onrender.com",
+        target: "http://localhost:5000",
         changeOrigin: true,
         secure: false,
       },

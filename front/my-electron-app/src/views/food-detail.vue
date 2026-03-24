@@ -604,6 +604,7 @@ export default {
 
         // Fetch from your backend API
         const response = await axios.get(`/api/products/${productId}`, {
+          params: { lang: this.$i18n.locale },
           timeout: 60000,
         });
 

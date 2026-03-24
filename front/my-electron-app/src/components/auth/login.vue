@@ -68,55 +68,65 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div>
-            <label
-              class="block text-zinc-500 font-black uppercase text-[10px] tracking-widest mb-2"
-              >Ishchi Kodi</label
-            >
-            <input
-              v-model="formData.uniqueCode"
-              type="text"
-              placeholder="Worker"
-              class="w-full bg-zinc-900/50 border border-zinc-800 focus:border-green-500 rounded-xl p-4 text-white outline-none transition-all font-bold placeholder:text-zinc-700 text-xs"
-            />
+        <!-- Ko'dlar uchun bo'lim -->
+        <div class="space-y-4 pt-4 border-t border-zinc-900">
+          <p class="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 mb-4 text-center">Xodimlar uchun maxsus kodlar</p>
+          
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-zinc-500 font-black uppercase text-[9px] tracking-widest mb-1.5">Ishchi Kodi</label>
+              <input
+                v-model="formData.uniqueCode"
+                type="text"
+                placeholder="Worker"
+                class="w-full bg-zinc-900/30 border border-zinc-800/50 focus:border-green-500/50 rounded-lg p-3 text-white outline-none transition-all font-bold placeholder:text-zinc-800 text-xs"
+              />
+            </div>
+            <div>
+              <label class="block text-zinc-500 font-black uppercase text-[9px] tracking-widest mb-1.5">Ega Kodi</label>
+              <input
+                v-model="formData.legacyCode"
+                type="text"
+                placeholder="Owner"
+                class="w-full bg-zinc-900/30 border border-zinc-800/50 focus:border-green-500/50 rounded-lg p-3 text-white outline-none transition-all font-bold placeholder:text-zinc-800 text-xs"
+              />
+            </div>
           </div>
-          <div>
-            <label
-              class="block text-zinc-500 font-black uppercase text-[10px] tracking-widest mb-2"
-              >Ega Kodi</label
-            >
-            <input
-              v-model="formData.legacyCode"
-              type="text"
-              placeholder="Owner"
-              class="w-full bg-zinc-900/50 border border-zinc-800 focus:border-green-500 rounded-xl p-4 text-white outline-none transition-all font-bold placeholder:text-zinc-700 text-xs"
-            />
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-zinc-500 font-black uppercase text-[9px] tracking-widest mb-1.5">Menejer</label>
+              <input
+                v-model="formData.managerCode"
+                type="text"
+                placeholder="Manager"
+                class="w-full bg-zinc-900/30 border border-zinc-800/50 focus:border-green-500/50 rounded-lg p-3 text-white outline-none transition-all font-bold placeholder:text-zinc-800 text-xs"
+              />
+            </div>
+            <div>
+              <label class="block text-zinc-500 font-black uppercase text-[9px] tracking-widest mb-1.5">Kuryer Kodi</label>
+              <input
+                v-model="formData.deliveryCode"
+                type="text"
+                placeholder="Delivery"
+                class="w-full bg-zinc-900/30 border border-zinc-800/50 focus:border-green-500/50 rounded-lg p-3 text-white outline-none transition-all font-bold placeholder:text-zinc-800 text-xs"
+              />
+            </div>
           </div>
-          <div>
-            <label
-              class="block text-zinc-500 font-black uppercase text-[10px] tracking-widest mb-2"
-              >Menejer</label
-            >
-            <input
-              v-model="formData.managerCode"
-              type="text"
-              placeholder="Manager"
-              class="w-full bg-zinc-900/50 border border-zinc-800 focus:border-green-500 rounded-xl p-4 text-white outline-none transition-all font-bold placeholder:text-zinc-700 text-xs"
-            />
-          </div>
-          <div>
-            <label
-              class="block text-zinc-500 font-black uppercase text-[10px] tracking-widest mb-2"
-              >Kuryer Kodi</label
-            >
-            <input
-              v-model="formData.deliveryCode"
-              type="text"
-              placeholder="Delivery"
-              class="w-full bg-zinc-900/50 border border-zinc-800 focus:border-green-500 rounded-xl p-4 text-white outline-none transition-all font-bold placeholder:text-zinc-700 text-xs"
-            />
-          </div>
+
+          <!-- Ish Maydoni faqat kuryer kodi TO'G'RI bo'lganda chiqadi -->
+          <transition name="fade">
+            <div v-if="isDeliveryCodeValid" class="mt-4 p-4 bg-green-500/5 border border-green-500/10 rounded-xl">
+              <label class="block text-green-500/70 font-black uppercase text-[9px] tracking-widest mb-2">Ish Maydoni (Xaritalash uchun)</label>
+              <input
+                v-model="formData.workingRegion"
+                type="text"
+                placeholder="Masalan: Chilonzor, Yunusobod..."
+                class="w-full bg-zinc-900 border border-green-500/20 focus:border-green-500 rounded-xl p-4 text-white outline-none transition-all font-bold placeholder:text-zinc-700 text-sm"
+              />
+              <p class="text-[9px] text-zinc-600 mt-2 italic">* Kuryer sifatida ishlash uchun hududni kiriting</p>
+            </div>
+          </transition>
         </div>
 
         <button
@@ -158,7 +168,9 @@ export default {
         legacyCode: "",
         deliveryCode: "",
         managerCode: "",
+        workingRegion: "",
       },
+      isDeliveryCodeValid: false,
       error: null,
       success: null,
       loading: false,
@@ -169,12 +181,13 @@ export default {
       this.error = null;
       this.success = null;
 
-      const { email, password, uniqueCode, legacyCode, deliveryCode, managerCode } =
+      const { email, password, uniqueCode, legacyCode, deliveryCode, managerCode, workingRegion } =
         this.formData;
       const cleanUniqueCode = uniqueCode ? uniqueCode.trim() : null;
       const cleanLegacyCode = legacyCode ? legacyCode.trim() : null;
       const cleanDeliveryCode = deliveryCode ? deliveryCode.trim() : null;
       const cleanManagerCode = managerCode ? managerCode.trim() : null;
+      const cleanWorkingRegion = workingRegion ? workingRegion.trim() : null;
 
       if (!email || !password) {
         this.error = "Email va parol majburiy.";
@@ -193,6 +206,7 @@ export default {
             legacyCode: cleanLegacyCode,
             deliveryCode: cleanDeliveryCode,
             managerCode: cleanManagerCode,
+            workingRegion: cleanWorkingRegion,
           },
           {
             headers: { "Content-Type": "application/json" },
@@ -235,10 +249,62 @@ export default {
         this.loading = false;
       }
     },
+    async checkDeliveryCode() {
+      if (!this.formData.deliveryCode || this.formData.deliveryCode.trim().length < 4) {
+        this.isDeliveryCodeValid = false;
+        return;
+      }
+
+      try {
+        const response = await axios.post("/api/auth/validate-delivery-code", {
+          email: this.formData.email,
+          code: this.formData.deliveryCode,
+        });
+        this.isDeliveryCodeValid = response.data.isValid;
+      } catch (error) {
+        console.error("Code validation error", error);
+        this.isDeliveryCodeValid = false;
+      }
+    },
+  },
+  watch: {
+    "formData.deliveryCode": {
+      handler() {
+        // Simple debounce
+        if (this.validationTimeout) clearTimeout(this.validationTimeout);
+        this.validationTimeout = setTimeout(() => {
+          this.checkDeliveryCode();
+        }, 500);
+      },
+    },
+    "formData.email": {
+      handler() {
+        if (this.formData.deliveryCode) {
+          this.checkDeliveryCode();
+        }
+      },
+    },
   },
 };
 </script>
 
 <style scoped>
-/* Scoped styles kept minimal as main components are in main.css and Tailwind */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.premium-card {
+  background: rgba(15, 15, 15, 0.8);
+  backdrop-filter: blur(40px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 24px;
+  box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.5);
+}
 </style>

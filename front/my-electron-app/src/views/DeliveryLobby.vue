@@ -39,7 +39,7 @@
       </div>
 
       <!-- Stats -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
         <div
           class="premium-card p-8 bg-gradient-to-br from-green-500/10 to-transparent border-green-500/10"
         >
@@ -49,6 +49,16 @@
             Mavjud buyurtmalar
           </p>
           <p class="text-4xl font-black text-white">{{ orders.length }} ta</p>
+        </div>
+        <div class="premium-card p-8 border-blue-500/20 bg-blue-500/5">
+          <p
+            class="text-zinc-500 font-black uppercase text-[10px] tracking-widest mb-2"
+          >
+            Ish Maydoni
+          </p>
+          <p class="text-xl font-black text-blue-400 uppercase">
+            {{ user?.workingRegion || "Hamma Joy" }}
+          </p>
         </div>
         <div class="premium-card p-8">
           <p

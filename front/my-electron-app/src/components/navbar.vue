@@ -14,13 +14,40 @@
       ></div>
       <input
         type="text"
-        placeholder="qidiruv"
-        v-model="filteredMenu"
+        :placeholder="$t('search_placeholder')"
+        v-model="searchQuery"
+        @input="onSearchInput"
         class="bg-transparent rounded-r-md h-[90%] w-[90%] outline-none border-none"
       />
     </div>
 
     <div class="flex items-center justify-center gap-[1em]">
+      <!-- Language Switcher -->
+      <div class="relative lang-dropdown h-[40px] hidden sm:block">
+        <button
+          @click="toggleLangList"
+          class="flex items-center gap-2 h-full px-3 border-2 border-zinc-800 rounded-md hover:bg-zinc-800 transition uppercase text-[10px] font-black tracking-widest"
+        >
+          <span>{{ currentLanguageLabel }}</span>
+          <i class="bi bi-chevron-down text-[8px]"></i>
+        </button>
+        <div
+          v-if="showLangList"
+          class="absolute top-[120%] right-0 w-32 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl py-2 z-[10000] overflow-hidden"
+        >
+          <button
+            v-for="(label, lang) in languages"
+            :key="lang"
+            @click="changeLanguage(lang)"
+            :class="[
+              'w-full text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest transition-all hover:bg-green-500/10',
+              $i18n.locale === lang ? 'text-green-500' : 'text-zinc-500 hover:text-white'
+            ]"
+          >
+            {{ label }}
+          </button>
+        </div>
+      </div>
       <!-- <mode /> -->
 
       <!-- Cart Section -->
@@ -107,14 +134,30 @@ export default {
   data() {
     return {
       list: false,
-      filteredMenu: "",
+      searchQuery: "",
+      searchDebounceTimer: null,
       user: null,
       userName: "",
       loading: false,
       cartCount: 0,
+      showLangList: false,
+      languages: {
+        ru: "Русский",
+        en: "English",
+        zh: "Chinese",
+        uz: "O'zbekcha",
+      },
     };
   },
+  watch: {
+    "$route.query.search"(newVal) {
+      this.searchQuery = newVal || "";
+    },
+  },
   computed: {
+    currentLanguageLabel() {
+      return this.languages[this.$i18n.locale] || "RU";
+    },
     displayName() {
       if (!this.user) return "";
       return (
@@ -138,16 +181,45 @@ export default {
   mounted() {
     this.loadUser();
     this.updateCartCount();
+    this.searchQuery = this.$route.query.search || "";
     window.addEventListener("userLoggedIn", this.loadUser);
     window.addEventListener("storage", this.handleStorageChange);
     window.addEventListener("cartUpdated", this.updateCartCount);
+    document.addEventListener("click", this.closeDropdowns);
   },
   beforeUnmount() {
     window.removeEventListener("userLoggedIn", this.loadUser);
     window.removeEventListener("storage", this.handleStorageChange);
     window.removeEventListener("cartUpdated", this.updateCartCount);
+    document.removeEventListener("click", this.closeDropdowns);
   },
   methods: {
+    toggleLangList() {
+      this.showLangList = !this.showLangList;
+    },
+    closeDropdowns(e) {
+      if (!e.target.closest(".lang-dropdown")) {
+        this.showLangList = false;
+      }
+    },
+    changeLanguage(lang) {
+      this.$i18n.locale = lang;
+      localStorage.setItem("lang", lang);
+      this.showLangList = false;
+    },
+    // Real-time debounced search
+    onSearchInput() {
+      clearTimeout(this.searchDebounceTimer);
+      this.searchDebounceTimer = setTimeout(() => {
+        const query = this.searchQuery.trim();
+        if (this.$route.path !== "/") {
+          this.$router.push({ path: "/", query: query ? { search: query } : {} });
+        } else {
+          this.$router.replace({ query: query ? { search: query } : {} });
+        }
+      }, 300);
+    },
+
     // LocalStorage o'zgarishini kuzatish
     handleStorageChange(event) {
       if (event && event.key === "user") {

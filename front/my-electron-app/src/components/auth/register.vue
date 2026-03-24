@@ -179,6 +179,7 @@ export default {
         confirmPassword: "",
         cardNumber: "",
         address: "",
+        workingRegion: "",
       },
       error: null,
       success: null,

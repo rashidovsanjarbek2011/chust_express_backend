@@ -1,13 +1,63 @@
 const express = require("express");
 const router = express.Router();
 const { protect } = require("../middleware/auth"); // Verify this path is correct
+const { translate } = require("google-translate-api-x");
+
+// Cache for translations to avoid repeated API calls
+const translationCache = new Map();
+
+const translateText = async (text, targetLang) => {
+  if (!text || !targetLang || targetLang === "ru") return text;
+  const cacheKey = `${targetLang}:${text}`;
+  if (translationCache.has(cacheKey)) return translationCache.get(cacheKey);
+
+  try {
+    const res = await translate(text, { to: targetLang });
+    translationCache.set(cacheKey, res.text);
+    return res.text;
+  } catch (err) {
+    console.error("Translation error:", err.message);
+    return text; // Fallback to original
+  }
+};
+
+const translateProduct = async (product, lang) => {
+  if (!lang || lang === "ru") return product;
+  const [translatedName, translatedDesc] = await Promise.all([
+    translateText(product.name, lang),
+    translateText(product.description, lang),
+  ]);
+  return {
+    ...product,
+    name: translatedName,
+    description: translatedDesc,
+  };
+};
 
 // ====================================
-// 1. GET /api/products - Get all products
+// 1. GET /api/products - Get all products (supports ?search=)
 // ====================================
 const getProducts = async (req, res) => {
   try {
+    const { search, category, lang } = req.query;
+
+    const where = {
+      ...(category && { category }),
+      ...(search && {
+        OR: [
+          { name: { contains: search, mode: "insensitive" } },
+          { category: { contains: search, mode: "insensitive" } },
+          {
+            owner: {
+              username: { contains: search, mode: "insensitive" },
+            },
+          },
+        ],
+      }),
+    };
+
     const products = await req.prisma.product.findMany({
+      where,
       include: {
         owner: {
           select: { id: true, username: true, email: true, role: true, address: true },
@@ -16,9 +66,15 @@ const getProducts = async (req, res) => {
       orderBy: { createdAt: "desc" },
     });
 
+    // Translate if language requested
+    const translatedProducts =
+      lang && lang !== "ru"
+        ? await Promise.all(products.map((p) => translateProduct(p, lang)))
+        : products;
+
     res
       .status(200)
-      .json({ success: true, count: products.length, data: products });
+      .json({ success: true, count: products.length, data: translatedProducts });
   } catch (error) {
     console.error("❌ getProducts error:", error.message);
     res.status(500).json({
@@ -47,7 +103,12 @@ const getProductById = async (req, res) => {
       return res
         .status(404)
         .json({ success: false, message: "Mahsulot topilmadi." });
-    res.status(200).json({ success: true, data: product });
+
+    const { lang } = req.query;
+    const finalProduct =
+      lang && lang !== "ru" ? await translateProduct(product, lang) : product;
+
+    res.status(200).json({ success: true, data: finalProduct });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -162,11 +223,42 @@ const getSellerStats = async (req, res) => {
 };
 
 // ====================================
+// 7. GET /api/products/categories - Get unique categories
+// ====================================
+const getCategories = async (req, res) => {
+  try {
+    const categories = await req.prisma.product.groupBy({
+      by: ["category"],
+      _count: {
+        _all: true,
+      },
+      where: {
+        isActive: true,
+      },
+    });
+
+    const formattedCategories = categories
+      .map((c) => c.category)
+      .filter((c) => c && c !== "Not Selected");
+
+    res.status(200).json({ success: true, data: formattedCategories });
+  } catch (error) {
+    console.error("❌ getCategories error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Kategoriyalarni olishda xatolik.",
+      error: error.message,
+    });
+  }
+};
+
+// ====================================
 // ROUTE MAPPING
 // ====================================
 
 // Public Routes
 router.get("/", getProducts);
+router.get("/categories", getCategories);
 router.get("/:id", getProductById);
 
 // Protected Routes (Authentication required)
