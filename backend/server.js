@@ -94,7 +94,7 @@ const adminRoutes = require("./routes/adminRoutes");
 
 // Test route (unchanged)
 app.get("/", (req, res) => {
-  res.send("API is working...");
+  res.send("API is working... (Version: 2.5.0)");
 });
 
 // ======================
