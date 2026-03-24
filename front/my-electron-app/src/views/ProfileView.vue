@@ -187,6 +187,34 @@
                 </button>
               </div>
             </div>
+
+            <!-- Ish Maydoni (Delivery) -->
+            <div
+              v-if="user.role === 'delivery' || user.isDelivery"
+              class="space-y-3 pt-4 border-t border-zinc-800 md:col-span-2"
+            >
+              <label class="text-zinc-500 font-black uppercase text-[10px] tracking-widest">Ish Maydoni (Xaritalash uchun)</label>
+              <div class="flex gap-4 items-center bg-zinc-900/50 p-4 rounded-xl border border-zinc-800">
+                <div class="flex-grow">
+                  <input
+                    v-model="user.workingRegion"
+                    type="text"
+                    placeholder="Masalan: Chilonzor, Yunusobod..."
+                    class="w-full bg-transparent text-white font-bold outline-none border-none placeholder:text-zinc-700 p-0"
+                  />
+                </div>
+                <button
+                  @click="updateWorkingRegion"
+                  :disabled="updatingRegion"
+                  class="px-4 py-2 bg-green-500 hover:bg-green-600 active:bg-green-700 text-black rounded-lg font-bold text-[10px] uppercase tracking-wider transition-all flex items-center gap-2"
+                >
+                  <i v-if="updatingRegion" class="bi bi-arrow-repeat animate-spin"></i>
+                  <i v-else class="bi bi-save-fill"></i>
+                  Saqlash
+                </button>
+              </div>
+              <p class="text-[9px] text-zinc-600 italic">* Kuryer sifatida manzillarni xaritalash uchun foydalaniladi.</p>
+            </div>
           </div>
         </div>
 
@@ -247,6 +275,7 @@ export default {
       loading: false,
       error: null,
       updatingLocation: false,
+      updatingRegion: false,
       vehicles: [
         { label: "Piyoda", value: "ON_FOOT", icon: "bi bi-person-walking" },
         { label: "Avtomobil", value: "CAR", icon: "bi bi-car-front" },
@@ -313,6 +342,30 @@ export default {
         toast.success("Transport turi muvaffaqiyatli saqlandi!");
       } catch (err) {
         toast.error("Xatolik yuz berdi.");
+      }
+    },
+    async updateWorkingRegion() {
+      if (!this.user.workingRegion || !this.user.workingRegion.trim()) {
+        toast.warning("Iltimos, ish maydonini kiriting.");
+        return;
+      }
+
+      this.updatingRegion = true;
+      try {
+        const token = getToken();
+        await axios.put(
+          `/api/auth/profile`,
+          { workingRegion: this.user.workingRegion },
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+        toast.success("Ish maydoni muvaffaqiyatli yangilandi!");
+      } catch (err) {
+        console.error(err);
+        toast.error("Ish maydonini saqlashda xatolik yuz berdi.");
+      } finally {
+        this.updatingRegion = false;
       }
     },
     async fetchProfile() {
