@@ -227,6 +227,7 @@ const loginUser = async (req, res) => {
         address: user.address,
         workingRegion: user.workingRegion,
         isDelivery: user.isDelivery,
+        deliveryPrice: user.deliveryPrice, // Include deliveryPrice in the response
       },
     });
   } catch (error) {
@@ -324,7 +325,7 @@ const registerShopOwner = async (req, res) => {
 // 6. Profil yangilash (Lokatsiya)
 // ====================================
 const updateProfile = async (req, res) => {
-  const { latitude, longitude, address, isDelivery } = req.body;
+  const { latitude, longitude, address, isDelivery, workingRegion, deliveryPrice, vehicleType } = req.body;
   try {
     const user = await req.prisma.user.update({
       where: { id: req.user.id },
@@ -333,6 +334,9 @@ const updateProfile = async (req, res) => {
         longitude: longitude ? parseFloat(longitude) : undefined,
         address: address,
         isDelivery: isDelivery !== undefined ? isDelivery : undefined,
+        workingRegion: workingRegion,
+        deliveryPrice: deliveryPrice !== undefined ? parseFloat(deliveryPrice) : undefined,
+        vehicleType: vehicleType,
       },
     });
 
@@ -434,6 +438,34 @@ const validateDeliveryCodeAction = async (req, res) => {
   }
 };
 
+const getCouriersByRegion = async (req, res) => {
+  const { region } = req.params;
+  try {
+    const couriers = await req.prisma.user.findMany({
+      where: {
+        role: "delivery",
+        isPaused: false,
+        workingRegion: {
+          contains: region,
+          mode: "insensitive",
+        },
+      },
+      select: {
+        id: true,
+        username: true,
+        workingRegion: true,
+        deliveryPrice: true,
+        vehicleType: true,
+      },
+    });
+
+    res.status(200).json({ success: true, data: couriers });
+  } catch (error) {
+    console.error("❌ getCouriersByRegion error:", error.message);
+    res.status(500).json({ success: false, message: "Kuryerlarni olishda xatolik." });
+  }
+};
+
 // --- EKSPORTLAR ---
 module.exports = {
   registerUser,
@@ -445,4 +477,5 @@ module.exports = {
   registerDelivery,
   updateDeliveryVehicle,
   validateDeliveryCodeAction,
+  getCouriersByRegion,
 };

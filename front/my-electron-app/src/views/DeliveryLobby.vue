@@ -60,16 +60,59 @@
             {{ user?.workingRegion || "Hamma Joy" }}
           </p>
         </div>
-        <div class="premium-card p-8">
+        <div class="premium-card p-8 border-purple-500/20 bg-purple-500/5">
           <p
             class="text-zinc-500 font-black uppercase text-[10px] tracking-widest mb-2"
           >
-            Transport
+            Sizning Tarifingiz
           </p>
-          <p class="text-xl font-black text-white uppercase">
-            {{ user?.vehicleType || "Tanlanmagan" }}
+          <p class="text-xl font-black text-purple-400 uppercase">
+            {{ user?.deliveryPrice ? formatPrice(user.deliveryPrice) : "0 UZS" }}
           </p>
         </div>
+      </div>
+
+      <!-- Settings Section -->
+      <div class="premium-card p-8 mb-16 border-zinc-800 bg-zinc-900/30">
+        <div class="flex flex-col md:flex-row gap-8 items-end">
+          <div class="flex-grow space-y-4 w-full">
+            <h3 class="text-xs font-black uppercase tracking-widest text-zinc-500">
+              <i class="bi bi-gear-fill mr-2"></i> Ish xududi va Tarif sozlamalari
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="space-y-1">
+                <label class="text-[10px] font-bold text-zinc-600 uppercase">Ish Maydoni</label>
+                <input 
+                  v-model="editData.workingRegion" 
+                  type="text" 
+                  placeholder="Masalan: Chilonzor..." 
+                  class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-sm font-bold focus:border-green-500 outline-none transition-all"
+                />
+              </div>
+              <div class="space-y-1">
+                <label class="text-[10px] font-bold text-zinc-600 uppercase">Yetkazib berish narxi (UZS)</label>
+                <input 
+                  v-model="editData.deliveryPrice" 
+                  type="number" 
+                  placeholder="Masalan: 15000" 
+                  class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-sm font-bold focus:border-green-500 outline-none transition-all"
+                />
+              </div>
+            </div>
+          </div>
+          <button 
+            @click="saveSettings" 
+            :disabled="saving"
+            class="px-8 py-3 bg-green-600 hover:bg-green-700 disabled:bg-zinc-800 text-white font-black uppercase tracking-widest text-[10px] rounded-xl transition-all shadow-lg shadow-green-500/10 flex items-center gap-2 whitespace-nowrap"
+          >
+            <i v-if="saving" class="bi bi-arrow-repeat animate-spin"></i>
+            <i v-else class="bi bi-check2-circle text-sm"></i>
+            Saqlash
+          </button>
+        </div>
+        <p class="mt-4 text-[10px] text-zinc-600 italic">
+          * Ushbu ma'lumotlar mijozlarga ko'rinadi va buyurtma narxi shunga qarab hisoblanadi.
+        </p>
       </div>
 
       <!-- Orders List -->
@@ -262,6 +305,11 @@ export default {
       user: null,
       pollingInterval: null,
       socket: null,
+      editData: {
+        workingRegion: "",
+        deliveryPrice: 0,
+      },
+      saving: false,
     };
   },
   mounted() {
@@ -307,6 +355,8 @@ export default {
         });
         if (response.data.success) {
           this.user = response.data.data;
+          this.editData.workingRegion = this.user.workingRegion || "";
+          this.editData.deliveryPrice = this.user.deliveryPrice || 0;
         }
       } catch (err) {
         console.error("User error:", err);
@@ -364,6 +414,35 @@ export default {
           this.$router.push("/login");
         }
       }
+    },
+    async saveSettings() {
+      this.saving = true;
+      try {
+        const token = this.getAuthToken();
+        const response = await axios.put(
+          "/api/auth/profile",
+          {
+            workingRegion: this.editData.workingRegion,
+            deliveryPrice: this.editData.deliveryPrice,
+          },
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+        if (response.data.success) {
+          this.user = response.data.data;
+          toast.success("Sozlamalar muvaffaqiyatli saqlandi!");
+        }
+      } catch (err) {
+        console.error("Save settings error:", err);
+        toast.error("Saqlashda xatolik yuz berdi.");
+      } finally {
+        this.saving = false;
+      }
+    },
+    formatPrice(price) {
+      if (!price) return "0 UZS";
+      return Math.round(price).toLocaleString("uz-UZ") + " UZS";
     },
     formatDate(dateStr) {
       return new Date(dateStr).toLocaleString("uz-UZ");

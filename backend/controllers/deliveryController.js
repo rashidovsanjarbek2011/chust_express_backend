@@ -8,7 +8,15 @@ exports.getAvailableOrders = async (req, res) => {
     const orders = await req.prisma.order.findMany({
       where: {
         orderStatus: { in: ["Pending", "Processing"] },
-        deliveryId: null,
+        OR: [
+          { deliveryId: null },
+          {
+            delivery: {
+              driverId: req.user.id,
+              deliveryStatus: "Pending",
+            },
+          },
+        ],
       },
       include: {
         items: {
@@ -71,18 +79,46 @@ exports.takeOrder = async (req, res) => {
     const result = await req.prisma.$transaction(async (prisma) => {
       const order = await prisma.order.findUnique({
         where: { id: parsedOrderId },
+        include: { delivery: true },
       });
 
       if (!order) {
         throw new Error("Order not found");
       }
 
-      if (order.deliveryId) {
-        throw new Error(
-          "This order has already been taken by another courier.",
-        );
+      // If delivery record already exists (pre-assigned or already taken)
+      if (order.delivery) {
+        // If it's assigned to the current user and is Pending
+        if (
+          order.delivery.driverId === req.user.id &&
+          order.delivery.deliveryStatus === "Pending"
+        ) {
+          const delivery = await prisma.delivery.update({
+            where: { id: order.delivery.id },
+            data: {
+              deliveryStatus: "Accepted",
+              assignedAt: new Date(),
+            },
+          });
+
+          const updatedOrder = await prisma.order.update({
+            where: { id: parsedOrderId },
+            data: {
+              orderStatus: "Processing",
+              deliveryId: delivery.id,
+            },
+          });
+
+          return { order: updatedOrder, delivery };
+        } else {
+          // Assigned to someone else or already accepted
+          throw new Error(
+            "This order has already been taken by another courier.",
+          );
+        }
       }
 
+      // Public pool logic (create new Delivery)
       const delivery = await prisma.delivery.create({
         data: {
           deliveryStatus: "Accepted",

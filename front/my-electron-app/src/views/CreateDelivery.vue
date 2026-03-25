@@ -111,6 +111,40 @@
             </div>
           </div>
         </div>
+
+        <!-- Courier Selection -->
+        <div v-if="availableCouriers.length > 0">
+          <label class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-3 block">Mavjud Kuryerlar (Hududingizda)</label>
+          <div class="space-y-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+            <div
+              v-for="courier in availableCouriers"
+              :key="courier.id"
+              :class="[
+                'p-4 rounded-xl bg-zinc-900/50 border flex items-center justify-between cursor-pointer transition-all',
+                selectedCourierId === courier.id ? 'border-green-500 bg-green-500/5' : 'border-zinc-800 hover:border-zinc-700'
+              ]"
+              @click="selectCourier(courier)"
+            >
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-500">
+                  <i class="bi bi-person-fill"></i>
+                </div>
+                <div>
+                  <div class="text-sm font-black uppercase text-white leading-tight">{{ courier.username }}</div>
+                  <div class="text-[10px] text-zinc-500 uppercase tracking-tighter">{{ courier.vehicleType || 'Piyoda' }} • {{ courier.workingRegion }}</div>
+                </div>
+              </div>
+              <div class="text-right">
+                <div class="text-xs font-black text-green-500">{{ formatPrice(courier.deliveryPrice) }}</div>
+                <div class="text-[8px] text-zinc-600 uppercase">Xizmat haqi</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-else-if="inputTo && !loadingCouriers" class="p-4 bg-zinc-900/30 rounded-xl border border-zinc-800/50 text-center">
+          <p class="text-[10px] text-zinc-500 uppercase font-bold italic">Bu hududda hozircha bo'sh kuryerlar yo'q.</p>
+        </div>
       </div>
 
       <!-- Result Panel (Hidden by default) -->
@@ -239,6 +273,11 @@ export default {
 
       routeResult: null,
       creatingOrder: false,
+
+      availableCouriers: [],
+      selectedCourierId: null,
+      selectedCourier: null,
+      loadingCouriers: false,
     };
   },
   async mounted() {
@@ -378,6 +417,35 @@ export default {
       this.reverseGeocode(coords[0], coords[1], "to");
 
       this.calculateRoute();
+      this.searchCouriersInRegion(coords);
+    },
+    async searchCouriersInRegion(coords) {
+      if (!coords) return;
+      this.loadingCouriers = true;
+      try {
+        // Simple region extraction from coords or address
+        // For now we'll use a broad search or just fetch all active couriers and filter locally
+        // But better is to use the address from reverse geocode
+        const res = await axios.get(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${coords[0]}&lon=${coords[1]}`);
+        const address = res.data.address;
+        const region = address.city || address.town || address.village || address.suburb || address.county;
+        
+        if (region) {
+          const courierRes = await axios.get(`/api/auth/couriers-by-region/${encodeURIComponent(region)}`);
+          if (courierRes.data.success) {
+            this.availableCouriers = courierRes.data.data;
+          }
+        }
+      } catch (e) {
+        console.error("Courier search failed", e);
+      } finally {
+        this.loadingCouriers = false;
+      }
+    },
+    selectCourier(courier) {
+      this.selectedCourierId = courier.id;
+      this.selectedCourier = courier;
+      this.calculateRoute();
     },
     async reverseGeocode(lat, lng, target) {
       try {
@@ -447,8 +515,15 @@ export default {
       this.map.fitBounds(this.routePolyline.getBounds(), { padding: [50, 50] });
 
       // Price Calc
-      const base = this.selectedType.basePrice || 0;
-      const rate = this.selectedType.baseCostPerKm || 0;
+      let base = this.selectedType.basePrice || 0;
+      let rate = this.selectedType.baseCostPerKm || 0;
+      
+      // If courier is selected, their price overrides or adds to base
+      if (this.selectedCourier && this.selectedCourier.deliveryPrice) {
+        base = this.selectedCourier.deliveryPrice;
+        rate = 0; // Courier price is usually flat for region in this simple model
+      }
+      
       const totalPrice = base + distKm * rate;
 
       // Duration Estimate (Roughly 30km/h avg speed inside city)
@@ -486,6 +561,7 @@ export default {
           notes: `From: ${this.inputFrom}, Make: Delivery Service`,
           subtotalPrice: 0,
           deliveryTypeId: this.selectedTypeId,
+          preferredCourierId: this.selectedCourierId, // Pass preferred courier if any
 
           // Destination
           latitude: this.endPoint[0],

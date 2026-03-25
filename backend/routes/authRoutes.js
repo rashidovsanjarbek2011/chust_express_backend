@@ -13,6 +13,7 @@ const {
   registerDelivery,
   updateDeliveryVehicle,
   validateDeliveryCodeAction,
+  getCouriersByRegion,
 } = require("../controllers/authController");
 
 // Middleware
@@ -35,6 +36,7 @@ router.post("/register", authLimiter, registerUser);
 router.post("/login", authLimiter, loginUser);
 router.post("/register/delivery", registerDelivery);
 router.post("/validate-delivery-code", validateDeliveryCodeAction);
+router.get("/couriers-by-region/:region", getCouriersByRegion);
 
 // ======================
 // 🔐 Protected routes

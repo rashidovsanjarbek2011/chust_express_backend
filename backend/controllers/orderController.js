@@ -21,6 +21,7 @@ exports.addOrderItems = async (req, res) => {
     latitude,
     longitude,
     deliveryTypeId,
+    preferredCourierId,
   } = req.body;
 
   if (!clientOrderItems || clientOrderItems.length === 0) {
@@ -176,8 +177,27 @@ exports.addOrderItems = async (req, res) => {
           longitude: longitude ? parseFloat(longitude) : null,
           originLat: originLat,
           originLng: originLng,
+          preferredCourierId: preferredCourierId ? parseInt(preferredCourierId) : null,
         },
       });
+
+      // If a preferred courier is chosen, create delivery record immediately
+      if (preferredCourierId) {
+        const delivery = await prisma.delivery.create({
+          data: {
+            orderId: newOrder.id,
+            driverId: parseInt(preferredCourierId),
+            deliveryStatus: "Pending", // Assigned to a specific courier
+            assignedAt: new Date(),
+          },
+        });
+        
+        // Link delivery to order
+        await prisma.order.update({
+          where: { id: newOrder.id },
+          data: { deliveryId: delivery.id }
+        });
+      }
 
       // Then create order items with the order ID
       for (const item of sessionOrderItems) {
