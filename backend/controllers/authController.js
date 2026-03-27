@@ -319,38 +319,6 @@ const registerShopOwner = async (req, res) => {
     console.error("❌ registerShopOwner error:", error.message);
     res.status(500).json({ success: false, message: "Xatolik." });
   }
-};
-
-// ====================================
-// 6. Profil yangilash (Lokatsiya)
-// ====================================
-const updateProfile = async (req, res) => {
-  const { latitude, longitude, address, isDelivery, workingRegion, deliveryPrice, vehicleType } = req.body;
-  try {
-    const user = await req.prisma.user.update({
-      where: { id: req.user.id },
-      data: {
-        latitude: latitude ? parseFloat(latitude) : undefined,
-        longitude: longitude ? parseFloat(longitude) : undefined,
-        address: address,
-        isDelivery: isDelivery !== undefined ? isDelivery : undefined,
-        workingRegion: workingRegion,
-        deliveryPrice: deliveryPrice !== undefined ? parseFloat(deliveryPrice) : undefined,
-        vehicleType: vehicleType,
-      },
-    });
-
-    res.status(200).json({ success: true, data: user });
-  } catch (error) {
-    console.error("❌ updateProfile error:", error.message);
-    res.status(500).json({ success: false, message: "Profil yangilanmadi." });
-  }
-};
-
-// ====================================
-// 7. Kuryer ro'yxatdan o'tishi
-// ====================================
-const registerDelivery = async (req, res) => {
   const { username, email, password, workingRegion } = req.body;
   try {
     const hashedPassword = await bcrypt.hash(password, 12);
