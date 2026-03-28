@@ -9,6 +9,21 @@ const canManageOrder = (req, order) => {
   return false;
 };
 
+// Helper: Calculate distance between two coordinates
+const getDistanceFromLatLonInKm = (lat1, lon1, lat2, lon2) => {
+  const R = 6371; // Radius of the earth in km
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) *
+    Math.cos(lat2 * (Math.PI / 180)) *
+    Math.sin(dLon / 2) *
+    Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
 // @desc    Create new order & decrease inventory
 // @route   POST /api/orders
 // @access  Private (User/Customer)
@@ -22,25 +37,30 @@ exports.addOrderItems = async (req, res) => {
     longitude,
     deliveryTypeId,
     preferredCourierId,
+    notes,
   } = req.body;
 
+  // Validate required fields
   if (!clientOrderItems || clientOrderItems.length === 0) {
-    return res.status(400).json({ message: "No order items provided." });
+    return res.status(400).json({ 
+      success: false,
+      message: "No order items provided." 
+    });
   }
-  if (
-    !shippingAddress ||
-    typeof shippingAddress !== "string" ||
-    shippingAddress.trim().length < 5
-  ) {
-    return res
-      .status(400)
-      .json({ message: "Shipping address is required and must be valid." });
+  
+  if (!shippingAddress || typeof shippingAddress !== "string" || shippingAddress.trim().length < 5) {
+    return res.status(400).json({ 
+      success: false,
+      message: "Shipping address is required and must be valid." 
+    });
   }
+  
   const parsedSubtotal = parseFloat(subtotalPrice);
   if (isNaN(parsedSubtotal) || parsedSubtotal < 0) {
-    return res
-      .status(400)
-      .json({ message: "Subtotal price must be a valid non-negative number." });
+    return res.status(400).json({ 
+      success: false,
+      message: "Subtotal price must be a valid non-negative number." 
+    });
   }
 
   try {
@@ -50,6 +70,7 @@ exports.addOrderItems = async (req, res) => {
     let originLng = null;
 
     const order = await req.prisma.$transaction(async (prisma) => {
+      // Process each order item
       for (const item of clientOrderItems) {
         const productId = parseInt(item.product, 10);
         const quantity = parseInt(item.quantity, 10);
@@ -117,21 +138,7 @@ exports.addOrderItems = async (req, res) => {
         }
       }
 
-      // Haversine formula to calculate distance
-      const getDistanceFromLatLonInKm = (lat1, lon1, lat2, lon2) => {
-        const R = 6371; // Radius of the earth in km
-        const dLat = (lat2 - lat1) * (Math.PI / 180);
-        const dLon = (lon2 - lon1) * (Math.PI / 180);
-        const a =
-          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-          Math.cos(lat1 * (Math.PI / 180)) *
-          Math.cos(lat2 * (Math.PI / 180)) *
-          Math.sin(dLon / 2) *
-          Math.sin(dLon / 2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return R * c;
-      };
-
+      // Calculate delivery distance
       let deliveryDistance = 5.0; // Default fallback in km
       if (originLat && originLng && latitude && longitude) {
         deliveryDistance = getDistanceFromLatLonInKm(
@@ -142,15 +149,36 @@ exports.addOrderItems = async (req, res) => {
         );
       }
 
-      // Fetch delivery type
+      // Fetch delivery type - CRITICAL FIX
       let deliveryType;
       if (deliveryTypeId) {
         deliveryType = await prisma.deliveryType.findUnique({
           where: { id: parseInt(deliveryTypeId) },
         });
-      } else {
-        // Fallback to first available type
+      } 
+      
+      // If no deliveryTypeId provided or not found, try to get default
+      if (!deliveryType) {
+        // Try to get first available delivery type
         deliveryType = await prisma.deliveryType.findFirst();
+        
+        // If still no delivery type, create a default one
+        if (!deliveryType) {
+          console.log("No delivery types found, creating default...");
+          try {
+            deliveryType = await prisma.deliveryType.create({
+              data: {
+                typeName: "Standard Delivery",
+                basePrice: 5000,
+                baseCostPerKm: 1000,
+                description: "Default delivery type",
+              },
+            });
+          } catch (createError) {
+            console.error("Failed to create default delivery type:", createError);
+            throw new Error("No delivery type configured. Please contact administrator.");
+          }
+        }
       }
 
       if (!deliveryType) {
@@ -158,8 +186,9 @@ exports.addOrderItems = async (req, res) => {
       }
 
       // Calculate Shipping Price: Base Price + (Distance * Rate)
-      const shippingPrice =
-        deliveryType.basePrice + deliveryDistance * deliveryType.baseCostPerKm;
+      const shippingPrice = Math.round(
+        deliveryType.basePrice + deliveryDistance * deliveryType.baseCostPerKm
+      );
       const finalTotalPrice = parsedSubtotal + shippingPrice;
 
       // Create order first without items
@@ -167,20 +196,22 @@ exports.addOrderItems = async (req, res) => {
         data: {
           userId: req.user.id,
           shippingAddress: shippingAddress.trim(),
-          paymentMethod,
+          paymentMethod: paymentMethod || "cash",
           subtotalPrice: parsedSubtotal,
           shippingPrice,
           totalPrice: finalTotalPrice,
           deliveryTypeId: deliveryType.id,
           orderStatus: "Pending",
+          isPaid: false,
           latitude: latitude ? parseFloat(latitude) : null,
           longitude: longitude ? parseFloat(longitude) : null,
           originLat: originLat,
           originLng: originLng,
+          notes: notes || null, // Add notes field
         },
       });
 
-      // Bypass strict Prisma Client validation if Render has cached an old schema
+      // Update preferred courier if provided
       if (preferredCourierId) {
         try {
           await prisma.$executeRawUnsafe(
@@ -211,7 +242,7 @@ exports.addOrderItems = async (req, res) => {
         });
       }
 
-      // Then create order items with the order ID
+      // Create order items with the order ID
       for (const item of sessionOrderItems) {
         await prisma.orderItem.create({
           data: {
@@ -236,12 +267,17 @@ exports.addOrderItems = async (req, res) => {
       });
     });
 
-    res.status(201).json(order);
+    res.status(201).json({
+      success: true,
+      data: order,
+      message: "Order created successfully"
+    });
   } catch (error) {
     console.error("Order creation failed:", error.message);
-    res
-      .status(500)
-      .json({ message: error.message || "Order creation failed." });
+    res.status(500).json({ 
+      success: false,
+      message: error.message || "Order creation failed." 
+    });
   }
 };
 
@@ -252,7 +288,10 @@ exports.getOrderById = async (req, res) => {
   try {
     const orderId = parseInt(req.params.id, 10);
     if (isNaN(orderId))
-      return res.status(400).json({ message: "Invalid order ID." });
+      return res.status(400).json({ 
+        success: false,
+        message: "Invalid order ID." 
+      });
 
     const order = await req.prisma.order.findUnique({
       where: { id: orderId },
@@ -271,7 +310,11 @@ exports.getOrderById = async (req, res) => {
         delivery: true,
       },
     });
-    if (!order) return res.status(404).json({ message: "Order not found." });
+    
+    if (!order) return res.status(404).json({ 
+      success: false,
+      message: "Order not found." 
+    });
 
     const isOwner = order.userId === req.user.id;
     const isAdminOrWorker = canManageOrder(req, order);
@@ -279,15 +322,22 @@ exports.getOrderById = async (req, res) => {
       order.delivery && Number(order.delivery.driverId) === Number(req.user.id);
 
     if (!(isOwner || isAdminOrWorker || isAssignedDriver)) {
-      return res
-        .status(403)
-        .json({ message: "Not authorized to view this order." });
+      return res.status(403).json({ 
+        success: false,
+        message: "Not authorized to view this order." 
+      });
     }
 
-    res.status(200).json(order);
+    res.status(200).json({ 
+      success: true, 
+      data: order 
+    });
   } catch (error) {
     console.error("Error fetching order:", error.message);
-    res.status(500).json({ message: "Error fetching order." });
+    res.status(500).json({ 
+      success: false,
+      message: "Error fetching order." 
+    });
   }
 };
 
@@ -298,14 +348,26 @@ exports.updateOrderToPaid = async (req, res) => {
   try {
     const orderId = parseInt(req.params.id, 10);
     if (isNaN(orderId))
-      return res.status(400).json({ message: "Invalid order ID." });
+      return res.status(400).json({ 
+        success: false,
+        message: "Invalid order ID." 
+      });
 
     const order = await req.prisma.order.findUnique({ where: { id: orderId } });
-    if (!order) return res.status(404).json({ message: "Order not found." });
+    if (!order) return res.status(404).json({ 
+      success: false,
+      message: "Order not found." 
+    });
     if (order.userId !== req.user.id)
-      return res.status(403).json({ message: "Not authorized." });
+      return res.status(403).json({ 
+        success: false,
+        message: "Not authorized." 
+      });
     if (order.isPaid)
-      return res.status(400).json({ message: "Order already paid." });
+      return res.status(400).json({ 
+        success: false,
+        message: "Order already paid." 
+      });
 
     const paymentResult = {
       id: req.body.id || "PAY_SIM_" + Date.now(),
@@ -320,7 +382,7 @@ exports.updateOrderToPaid = async (req, res) => {
         isPaid: true,
         paidAt: new Date(),
         orderStatus: "Processing",
-        notes: JSON.stringify(paymentResult),
+        notes: notes ? notes + " | " + JSON.stringify(paymentResult) : JSON.stringify(paymentResult),
       },
       include: {
         user: { select: { id: true, username: true, email: true } },
@@ -328,10 +390,16 @@ exports.updateOrderToPaid = async (req, res) => {
       },
     });
 
-    res.json(updatedOrder);
+    res.json({ 
+      success: true, 
+      data: updatedOrder 
+    });
   } catch (error) {
     console.error("Payment update failed:", error.message);
-    res.status(500).json({ message: "Payment update failed." });
+    res.status(500).json({ 
+      success: false,
+      message: "Payment update failed." 
+    });
   }
 };
 
@@ -341,17 +409,29 @@ exports.updateOrderToPaid = async (req, res) => {
 exports.updateOrderStatus = async (req, res) => {
   const { orderStatus } = req.body;
   if (!orderStatus)
-    return res.status(400).json({ message: "Order status required." });
+    return res.status(400).json({ 
+      success: false,
+      message: "Order status required." 
+    });
 
   try {
     const orderId = parseInt(req.params.id, 10);
     if (isNaN(orderId))
-      return res.status(400).json({ message: "Invalid order ID." });
+      return res.status(400).json({ 
+        success: false,
+        message: "Invalid order ID." 
+      });
 
     const order = await req.prisma.order.findUnique({ where: { id: orderId } });
-    if (!order) return res.status(404).json({ message: "Order not found." });
+    if (!order) return res.status(404).json({ 
+      success: false,
+      message: "Order not found." 
+    });
     if (!canManageOrder(req, order))
-      return res.status(403).json({ message: "Not authorized." });
+      return res.status(403).json({ 
+        success: false,
+        message: "Not authorized." 
+      });
 
     const updateData = { orderStatus };
     if (orderStatus === "Delivered") {
@@ -368,10 +448,16 @@ exports.updateOrderStatus = async (req, res) => {
       },
     });
 
-    res.json(updatedOrder);
+    res.json({ 
+      success: true, 
+      data: updatedOrder 
+    });
   } catch (error) {
     console.error("Status update failed:", error.message);
-    res.status(500).json({ message: "Status update failed." });
+    res.status(500).json({ 
+      success: false,
+      message: "Status update failed." 
+    });
   }
 };
 
@@ -397,14 +483,23 @@ exports.getMyOrders = async (req, res) => {
             },
           },
         },
+        deliveryType: true,
+        delivery: true,
       },
       orderBy: { createdAt: "desc" },
     });
 
-    res.status(200).json({ success: true, count: orders.length, data: orders });
+    res.status(200).json({ 
+      success: true, 
+      count: orders.length, 
+      data: orders 
+    });
   } catch (error) {
     console.error("Error fetching user orders:", error.message);
-    res.status(500).json({ message: "Error fetching user orders." });
+    res.status(500).json({ 
+      success: false,
+      message: "Error fetching user orders." 
+    });
   }
 };
 
@@ -418,9 +513,10 @@ exports.getAllOrders = async (req, res) => {
       req.user.role !== "shop_worker" &&
       req.user.role !== "shop_owner"
     ) {
-      return res
-        .status(403)
-        .json({ message: "Not authorized to view all orders." });
+      return res.status(403).json({ 
+        success: false,
+        message: "Not authorized to view all orders." 
+      });
     }
 
     const orders = await req.prisma.order.findMany({
@@ -441,13 +537,21 @@ exports.getAllOrders = async (req, res) => {
           },
         },
         delivery: { select: { id: true, deliveryStatus: true } },
+        deliveryType: true,
       },
       orderBy: { createdAt: "desc" },
     });
 
-    res.status(200).json({ success: true, count: orders.length, data: orders });
+    res.status(200).json({ 
+      success: true, 
+      count: orders.length, 
+      data: orders 
+    });
   } catch (error) {
     console.error("Error fetching all orders:", error.message);
-    res.status(500).json({ message: "Error fetching all orders." });
+    res.status(500).json({ 
+      success: false,
+      message: "Error fetching all orders." 
+    });
   }
 };
