@@ -319,6 +319,12 @@ const registerShopOwner = async (req, res) => {
     console.error("❌ registerShopOwner error:", error.message);
     res.status(500).json({ success: false, message: "Xatolik." });
   }
+};
+
+// ====================================
+// 6. Kuryer ro'yxatdan o'tishi
+// ====================================
+const registerDelivery = async (req, res) => {
   const { username, email, password, workingRegion } = req.body;
   try {
     const hashedPassword = await bcrypt.hash(password, 12);
@@ -345,6 +351,104 @@ const registerShopOwner = async (req, res) => {
     res
       .status(500)
       .json({ success: false, message: "Kuryer ro'yxatdan o'tmadi." });
+  }
+};
+
+// ====================================
+// 7. Profilni yangilash
+// ====================================
+const updateProfile = async (req, res) => {
+  const { username, email, phoneNumber, address, workingRegion, cardNumber } = req.body;
+  
+  try {
+    const updateData = {};
+    
+    if (username) updateData.username = username.trim();
+    if (email) updateData.email = email.toLowerCase().trim();
+    if (phoneNumber) updateData.phoneNumber = phoneNumber;
+    if (address) updateData.address = address;
+    if (workingRegion) updateData.workingRegion = workingRegion;
+    if (cardNumber) updateData.cardNumber = cardNumber.replace(/\s/g, "");
+    
+    // Check if email is being changed and if it already exists
+    if (email) {
+      const existingUser = await req.prisma.user.findFirst({
+        where: {
+          email: email.toLowerCase().trim(),
+          NOT: { id: req.user.id }
+        }
+      });
+      
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: "Bu email allaqachon ro'yxatdan o'tgan",
+        });
+      }
+    }
+    
+    // Check if username is being changed and if it already exists
+    if (username) {
+      const existingUser = await req.prisma.user.findFirst({
+        where: {
+          username: username.trim(),
+          NOT: { id: req.user.id }
+        }
+      });
+      
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: "Bu username allaqachon ro'yxatdan o'tgan",
+        });
+      }
+    }
+    
+    const updatedUser = await req.prisma.user.update({
+      where: { id: req.user.id },
+      data: updateData,
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        role: true,
+        phoneNumber: true,
+        address: true,
+        workingRegion: true,
+        cardNumber: true,
+        uniqueCode: true,
+        legacyCode: true,
+        deliveryCode: true,
+        managerCode: true,
+        isDelivery: true,
+        deliveryPrice: true,
+        shopId: true,
+      }
+    });
+    
+    res.status(200).json({
+      success: true,
+      data: updatedUser,
+      message: "Profil muvaffaqiyatli yangilandi",
+    });
+  } catch (error) {
+    console.error("❌ updateProfile error:", error.message);
+    
+    // Handle Prisma unique constraint error
+    if (error.code === "P2002" && error.meta?.target) {
+      const target = Array.isArray(error.meta.target) 
+        ? error.meta.target.join(", ") 
+        : error.meta.target;
+      return res.status(400).json({
+        success: false,
+        message: `${target} allaqachon ro'yxatdan o'tgan`,
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      message: "Profilni yangilashda xatolik yuz berdi",
+    });
   }
 };
 
@@ -406,6 +510,9 @@ const validateDeliveryCodeAction = async (req, res) => {
   }
 };
 
+// ====================================
+// 10. Region bo'yicha kuryerlarni olish
+// ====================================
 const getCouriersByRegion = async (req, res) => {
   const { region } = req.params;
   try {
@@ -441,8 +548,8 @@ module.exports = {
   getMe,
   registerShopWorker,
   registerShopOwner,
-  updateProfile,
   registerDelivery,
+  updateProfile,
   updateDeliveryVehicle,
   validateDeliveryCodeAction,
   getCouriersByRegion,
