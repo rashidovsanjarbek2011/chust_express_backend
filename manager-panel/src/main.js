@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from "vue-router";
 import App from "./App.vue";
 import Login from "./views/Login.vue";
 import Dashboard from "./views/Dashboard.vue";
+import ExtraPanel from "./views/ExtraPanel.vue";
 import "./style.css";
 
 const routes = [
@@ -12,6 +13,12 @@ const routes = [
     path: "/dashboard",
     name: "dashboard",
     component: Dashboard,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/extra-panel",
+    name: "extra-panel",
+    component: ExtraPanel,
     meta: { requiresAuth: true },
   },
 ];

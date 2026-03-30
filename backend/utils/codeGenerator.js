@@ -33,9 +33,17 @@ function generateManagerCode() {
   return "MGR-" + generateCode(5, chars);
 }
 
+// ExtraCode (EXT-XXXXXX format: 6 random alphanumeric characters)
+function generateExtraCode() {
+  const chars =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  return "EXT-" + generateCode(6, chars);
+}
+
 module.exports = {
   generateUniqueCode,
   generateLegacyCode,
   generateDeliveryCode,
   generateManagerCode,
+  generateExtraCode,
 };

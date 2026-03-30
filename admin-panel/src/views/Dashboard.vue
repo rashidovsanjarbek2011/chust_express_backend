@@ -28,6 +28,12 @@
               class="w-5 h-5 accent-blue-500"
             />
           </label>
+          <router-link
+            to="/extra-panel"
+            class="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white font-black uppercase tracking-widest text-xs rounded-lg transition-all"
+          >
+            🎚️ Resources
+          </router-link>
           <button @click="logout" class="btn-danger">Logout</button>
         </div>
       </div>
@@ -707,6 +713,8 @@ export default {
           "px-3 py-1 bg-green-500/20 text-green-500 rounded-lg text-xs font-bold uppercase",
         delivery:
           "px-3 py-1 bg-yellow-500/20 text-yellow-500 rounded-lg text-xs font-bold uppercase",
+        "extra-user":
+          "px-3 py-1 bg-cyan-500/20 text-cyan-400 rounded-lg text-xs font-bold uppercase",
         user: "px-3 py-1 bg-zinc-500/20 text-zinc-500 rounded-lg text-xs font-bold uppercase",
       };
       return badges[role] || badges.user;

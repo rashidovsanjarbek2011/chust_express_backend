@@ -1,135 +1,148 @@
 <template>
-  <nav
-    class="blurmaker z-[9999] flex fixed w-full items-center justify-between px-6 py-4 text-white shadow-xl shadow-black/20 border-b border-zinc-800"
-  >
-    <router-link to="/">
-      <img src="/logo_transparent.png" class="size-16 rounded-full" alt="" />
-    </router-link>
-    <div
-      class="search relative border-[2px] px-[0.1em] gap-4 rounded-md h-[40px] hidden md:flex items-center justify-around text-white"
+  <div>
+    <nav
+      class="blurmaker z-[9999] flex flex-col md:flex-row fixed w-full items-center justify-between px-4 sm:px-6 py-3 sm:py-4 text-white shadow-xl shadow-black/20 border-b border-zinc-800 gap-3 md:gap-4"
     >
-      <i class="bi bi-search pl-2"></i>
+      <!-- Logo -->
+      <router-link to="/" class="flex-shrink-0">
+        <img src="/logo_transparent.png" class="size-12 sm:size-16 rounded-full" alt="Logo" />
+      </router-link>
+
+      <!-- Search Bar - Visible on all screens -->
       <div
-        class="hider absolute w-[10%] z-[-1] h-[90%] bg-transparent left-[2.2em]"
-      ></div>
-      <input
-        type="text"
-        :placeholder="$t('search_placeholder')"
-        v-model="searchQuery"
-        @input="onSearchInput"
-        class="bg-transparent rounded-r-md h-[90%] w-[90%] outline-none border-none"
-      />
-    </div>
+        class="search relative border-[2px] px-[0.1em] gap-4 rounded-md h-[40px] flex items-center justify-around text-white flex-grow max-w-xs md:max-w-sm"
+      >
+        <i class="bi bi-search pl-2 flex-shrink-0"></i>
+        <input
+          type="text"
+          :placeholder="$t('search_placeholder')"
+          v-model="searchQuery"
+          @input="onSearchInput"
+          class="bg-transparent rounded-r-md h-[90%] w-[90%] outline-none border-none text-sm"
+        />
+      </div>
 
-    <div class="flex items-center justify-center gap-[1em]">
-      <!-- Language Switcher -->
-      <div class="relative lang-dropdown h-[40px] hidden sm:block">
-        <button
-          @click="toggleLangList"
-          class="flex items-center gap-2 h-full px-3 border-2 border-zinc-800 rounded-md hover:bg-zinc-800 transition uppercase text-[10px] font-black tracking-widest"
-        >
-          <span>{{ currentLanguageLabel }}</span>
-          <i class="bi bi-chevron-down text-[8px]"></i>
-        </button>
-        <div
-          v-if="showLangList"
-          class="absolute top-[120%] right-0 w-32 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl py-2 z-[10000] overflow-hidden"
-        >
+      <!-- Right Section - Buttons and Controls -->
+      <div class="flex items-center justify-center gap-2 sm:gap-3 flex-wrap md:flex-nowrap">
+        <!-- Language Switcher - Visible on all screens -->
+        <div class="relative lang-dropdown h-[40px]">
           <button
-            v-for="(label, lang) in languages"
-            :key="lang"
-            @click="changeLanguage(lang)"
-            :class="[
-              'w-full text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest transition-all hover:bg-green-500/10',
-              $i18n.locale === lang ? 'text-green-500' : 'text-zinc-500 hover:text-white'
-            ]"
+            @click="toggleLangList"
+            class="flex items-center gap-1 sm:gap-2 h-full px-2 sm:px-3 border-2 border-zinc-800 rounded-md hover:bg-zinc-800 transition uppercase text-[9px] sm:text-[10px] font-black tracking-widest"
+            title="Change Language"
           >
-            {{ label }}
+            <span class="hidden sm:inline">{{ currentLanguageLabel }}</span>
+            <span class="sm:hidden">{{ $i18n.locale.toUpperCase() }}</span>
+            <i class="bi bi-chevron-down text-[8px]"></i>
           </button>
-        </div>
-      </div>
-      <!-- <mode /> -->
-
-      <!-- Cart Section -->
-      <router-link to="/cart" class="relative group">
-        <div
-          class="flex items-center text-xl h-[40px] text-white border-[2px] rounded-md dark:border-zinc-700 px-[10px] hover:bg-zinc-700 transition"
-        >
-          <i class="bi bi-cart3"></i>
-          <span
-            v-if="cartCount > 0"
-            class="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full border-2 border-zinc-800"
+          <div
+            v-if="showLangList"
+            class="absolute top-[120%] right-0 w-32 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl py-2 z-[10000] overflow-hidden"
           >
-            {{ cartCount }}
-          </span>
+            <button
+              v-for="(label, lang) in languages"
+              :key="lang"
+              @click="changeLanguage(lang)"
+              :class="[
+                'w-full text-left px-4 py-3 text-[10px] font-black uppercase tracking-widest transition-all hover:bg-green-500/10',
+                $i18n.locale === lang ? 'text-green-500' : 'text-zinc-500 hover:text-white'
+              ]"
+            >
+              {{ label }}
+            </button>
+          </div>
         </div>
-      </router-link>
 
-      <!-- Create Product faqat login qilganlar uchun -->
-      <router-link v-if="user" to="/createProduct">
-        <div
-          class="flex items-center text-xl h-[40px] text-white border-[2px] rounded-md dark:border-zinc-700 px-[10px]"
+        <!-- Extra Button - Always Visible -->
+        <button
+          @click="openExtra"
+          class="flex items-center justify-center text-lg h-[40px] w-[40px] text-orange-400 border-[2px] border-orange-500/30 rounded-md hover:bg-orange-500/10 hover:border-orange-500 transition flex-shrink-0"
+          title="Resource Panel"
         >
-          +
-        </div>
-      </router-link>
+          <i class="bi bi-sliders"></i>
+        </button>
 
-      <!-- Seller Sales shortcut -->
-      <router-link v-if="isSeller" to="/seller/sales">
-        <div
-          class="flex items-center text-xl h-[40px] text-green-500 border-[2px] border-green-500/30 rounded-md px-[10px] hover:bg-green-500/10 hover:border-green-500 transition"
-          title="Sotuvlar"
-        >
-          <i class="bi bi-graph-up-arrow"></i>
-        </div>
-      </router-link>
-
-      <!-- Delivery Lobby shortcut -->
-      <router-link v-if="isDelivery" to="/delivery/lobby">
-        <div
-          class="flex items-center text-xl h-[40px] text-green-500 border-[2px] border-green-500/30 rounded-md px-[10px] hover:bg-blue-500/10 hover:border-green-500 transition"
-          title="Kuryer Paneli"
-        >
-          <i class="bi bi-bicycle"></i>
-        </div>
-      </router-link>
-      <!-- Auth section -->
-      <div v-if="user" class="flex items-center gap-4">
-        <!-- <router-link
-          to="/user-dashboard"
-          class="flex items-center text-sm h-[40px] text-white border-[2px] rounded-md dark:border-zinc-700 px-[10px] hover:bg-zinc-700"
-        >
-          <i class="bi bi-speedometer2"></i>
-          <span class="hidden md:inline"></span>
-        </router-link> -->
-        <router-link
-          to="/profile"
-          class="flex items-center text-sm h-[40px] text-white border-[2px] rounded-md dark:border-zinc-700 px-[10px] hover:bg-zinc-700"
-        >
-          <i class="bi bi-person-fill"></i>
-          <span class="hidden md:inline">{{ displayName }}</span>
+        <!-- Cart Section -->
+        <router-link to="/cart" class="relative group flex-shrink-0">
+          <div
+            class="flex items-center justify-center text-xl h-[40px] w-[40px] text-white border-[2px] rounded-md dark:border-zinc-700 hover:bg-zinc-700 transition"
+          >
+            <i class="bi bi-cart3"></i>
+            <span
+              v-if="cartCount > 0"
+              class="absolute -top-2 -right-2 bg-red-600 text-white text-[9px] w-5 h-5 flex items-center justify-center rounded-full border-2 border-zinc-800"
+            >
+              {{ cartCount }}
+            </span>
+          </div>
         </router-link>
-      </div>
-      <div v-else class="flex items-center gap-2">
-        <router-link
-          to="/register"
-          class="flex items-center text-sm h-[40px] text-white border-[2px] rounded-md dark:border-zinc-700 px-[10px] hover:bg-zinc-700"
-        >
-          <i class="bi bi-person-fill"></i>
+
+        <!-- Create Product (logged in users only) -->
+        <router-link v-if="user" to="/createProduct" class="flex-shrink-0">
+          <div
+            class="flex items-center justify-center text-xl h-[40px] w-[40px] text-white border-[2px] rounded-md dark:border-zinc-700 hover:bg-zinc-700 transition"
+            title="Add Product"
+          >
+            +
+          </div>
         </router-link>
+
+        <!-- Seller Sales shortcut -->
+        <router-link v-if="isSeller" to="/seller/sales" class="flex-shrink-0">
+          <div
+            class="flex items-center justify-center text-xl h-[40px] w-[40px] text-green-500 border-[2px] border-green-500/30 rounded-md hover:bg-green-500/10 hover:border-green-500 transition"
+            title="Sales"
+          >
+            <i class="bi bi-graph-up-arrow"></i>
+          </div>
+        </router-link>
+
+        <!-- Delivery Lobby shortcut -->
+        <router-link v-if="isDelivery" to="/delivery/lobby" class="flex-shrink-0">
+          <div
+            class="flex items-center justify-center text-xl h-[40px] w-[40px] text-green-500 border-[2px] border-green-500/30 rounded-md hover:bg-blue-500/10 hover:border-green-500 transition"
+            title="Delivery Panel"
+          >
+            <i class="bi bi-bicycle"></i>
+          </div>
+        </router-link>
+
+        <!-- Auth section -->
+        <div v-if="user" class="flex items-center gap-2 flex-shrink-0">
+          <router-link
+            to="/profile"
+            class="flex items-center justify-center text-sm h-[40px] text-white border-[2px] rounded-md dark:border-zinc-700 px-2 sm:px-3 hover:bg-zinc-700 transition whitespace-nowrap"
+            title="Profile"
+          >
+            <i class="bi bi-person-fill"></i>
+            <span class="hidden sm:inline ml-1 text-xs">{{ displayName }}</span>
+          </router-link>
+        </div>
+        <div v-else class="flex items-center gap-2 flex-shrink-0">
+          <router-link
+            to="/register"
+            class="flex items-center justify-center text-sm h-[40px] w-[40px] text-white border-[2px] rounded-md dark:border-zinc-700 hover:bg-zinc-700 transition"
+            title="Register / Login"
+          >
+            <i class="bi bi-person-fill"></i>
+          </router-link>
+        </div>
       </div>
-    </div>
-  </nav>
+    </nav>
+    <Extra ref="extraComponent" />
+  </div>
 </template>
 
 <script>
 // import mode from "./mode.vue";
 import axios from "axios";
+import Extra from "./Extra.vue";
 
 export default {
   name: "Navbar",
   components: {
     // mode,
+    Extra,
   },
   data() {
     return {
@@ -201,6 +214,9 @@ export default {
       if (!e.target.closest(".lang-dropdown")) {
         this.showLangList = false;
       }
+    },
+    openExtra() {
+      this.$refs.extraComponent?.openModal();
     },
     changeLanguage(lang) {
       this.$i18n.locale = lang;

@@ -6,6 +6,7 @@ const {
   generateLegacyCode,
   generateDeliveryCode,
   generateManagerCode,
+  generateExtraCode,
 } = require("../utils/codeGenerator");
 const { validateDeliveryCode } = require("../services/deliveryCodeService");
 
@@ -60,6 +61,7 @@ const registerUser = async (req, res) => {
         legacyCode: generateLegacyCode(),
         managerCode: generateManagerCode(),
         deliveryCode: generateDeliveryCode(),
+        extraCode: generateExtraCode(),
         cardNumber: cardNumber.replace(/\s/g, ""), // Remove spaces
         address: address, // Save address
         phoneNumber: phoneNumber, // Save phone number
@@ -80,6 +82,7 @@ const registerUser = async (req, res) => {
         legacyCode: user.legacyCode,
         managerCode: user.managerCode,
         deliveryCode: user.deliveryCode,
+        extraCode: user.extraCode,
         phoneNumber: user.phoneNumber,
       },
       token,
@@ -116,6 +119,7 @@ const loginUser = async (req, res) => {
     deliveryCode,
     adminCode,
     managerCode,
+    extraCode,
     workingRegion,
   } = req.body;
 
@@ -138,9 +142,11 @@ const loginUser = async (req, res) => {
 
     let finalRole = user.role;
 
-    // Admin, Shop Worker, Shop Owner va Kuryer kodi tekshiruvlari
+    // Admin, Shop Worker, Shop Owner, Extra User va Kuryer kodi tekshiruvlari
     if (adminCode && adminCode.trim() === process.env.ADMIN_CODE) {
       finalRole = "administrator";
+    } else if (extraCode && extraCode.trim() === user.extraCode) {
+      finalRole = "extra-user";
     } else if (uniqueCode && uniqueCode.trim() === user.uniqueCode) {
       finalRole = "shop_worker";
     } else if (legacyCode && legacyCode.trim() === user.legacyCode) {
@@ -223,6 +229,7 @@ const loginUser = async (req, res) => {
         uniqueCode: user.uniqueCode,
         legacyCode: user.legacyCode,
         deliveryCode: user.deliveryCode,
+        extraCode: user.extraCode,
         shopId: user.shopId,
         address: user.address,
         workingRegion: user.workingRegion,

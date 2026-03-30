@@ -100,6 +100,13 @@ const router = createRouter({
       component: () => import("@/views/CreateDelivery.vue"),
       meta: { requiresAuth: true, roles: ["user", "shop_owner"] },
     },
+    {
+      path: "/extra-panel",
+      name: "extra-panel",
+      component: () => import("@/views/ExtraPanel.vue"),
+      meta: { requiresAuth: true },
+    },
+
   ],
 });
 

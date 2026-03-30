@@ -248,6 +248,7 @@ export default {
       products: [],
       categories: [],
       activeCategory: "",
+      activeSearchQuery: "",
       loading: false,
       error: null,
     };
@@ -255,10 +256,12 @@ export default {
   mounted() {
     this.fetchCategories();
     this.activeCategory = this.$route.query.category || "";
+    this.activeSearchQuery = this.$route.query.search || "";
     this.fetchProducts(this.$route.query.search || "", this.activeCategory);
   },
   watch: {
     "$route.query.search"(newVal) {
+      this.activeSearchQuery = newVal || "";
       this.fetchProducts(newVal || "", this.activeCategory);
     },
     "$route.query.category"(newVal) {

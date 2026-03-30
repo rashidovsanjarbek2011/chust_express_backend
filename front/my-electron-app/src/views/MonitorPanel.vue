@@ -619,6 +619,8 @@ export default {
           "px-3 py-1 bg-green-500/20 text-green-500 rounded-lg text-xs font-bold",
         delivery:
           "px-3 py-1 bg-yellow-500/20 text-yellow-500 rounded-lg text-xs font-bold",
+        "extra-user":
+          "px-3 py-1 bg-cyan-500/20 text-cyan-400 rounded-lg text-xs font-bold",
         user: "px-3 py-1 bg-zinc-500/20 text-zinc-500 rounded-lg text-xs font-bold",
       };
       return badges[role] || badges.user;

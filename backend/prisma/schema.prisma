@@ -17,6 +17,7 @@ model User {
   uniqueCode   String?
   legacyCode   String?
   deliveryCode String?
+  extraCode    String?       @unique
   shopId       Int?
   isDelivery   Boolean       @default(false)
   isPaused     Boolean       @default(false)
@@ -69,6 +70,7 @@ model Product {
 model Order {
   id              Int           @id @default(autoincrement())
   userId          Int
+  territoryId     Int?
   shippingAddress String
   paymentMethod   String?
   subtotalPrice   Float         @default(0)
@@ -84,12 +86,15 @@ model Order {
   originLat       Float?
   originLng       Float?
   preferredCourierId Int?
+  notes           String?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   delivery        Delivery?
   deliveryType    DeliveryType? @relation(fields: [deliveryTypeId], references: [id])
   user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  territory       Territory?    @relation(fields: [territoryId], references: [id], onDelete: SetNull)
   items           OrderItem[]
+  resources       OrderResource[]
 }
 
 model OrderItem {
@@ -114,6 +119,7 @@ model DeliveryType {
   maxWeightKg     Float    @default(1000)
   maxDistanceKm   Float    @default(100)
   vehicleRequired Boolean  @default(true)
+  description     String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   basePrice       Float    @default(0)
@@ -169,4 +175,108 @@ model ManagerCode {
   expiresAt DateTime
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ============================================
+// TERRITORY & RESOURCE MANAGEMENT MODELS
+// ============================================
+
+model Territory {
+  id          Int      @id @default(autoincrement())
+  name        String
+  zoneType    String?
+  description String?
+  geometry    String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  orders               Order[]
+  workerTerritories    WorkerTerritory[]
+  orderResources       OrderResource[]
+  vehicleTerritories   VehicleTerritory[]
+}
+
+model Worker {
+  id       Int      @id @default(autoincrement())
+  fullName String
+  role     String
+  phone    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workerTerritories WorkerTerritory[]
+}
+
+model WorkerTerritory {
+  id               Int     @id @default(autoincrement())
+  workerId         Int
+  territoryId      Int
+  isActive         Boolean @default(true)
+  defaultPriority  Int     @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  worker    Worker    @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  territory Territory @relation(fields: [territoryId], references: [id], onDelete: Cascade)
+
+  @@unique([workerId, territoryId])
+}
+
+model OrderResource {
+  id            Int      @id @default(autoincrement())
+  orderId       Int
+  resourceType  String
+  resourceId    Int?
+  territoryId   Int?
+  quantity      Int      @default(1)
+  price         Float    @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  order     Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  territory Territory? @relation(fields: [territoryId], references: [id], onDelete: SetNull)
+}
+
+model ConstructionEquipment {
+  id         Int      @id @default(autoincrement())
+  name       String
+  hourlyRate Float    @default(0)
+  status     String   @default("Available")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model DeliveryVehicle {
+  id         Int      @id @default(autoincrement())
+  name       String
+  capacity   Float?
+  plateNum   String?  @unique
+  hourlyRate Float?   @default(0)
+  pricePerKm Float?   @default(0)
+  status     String   @default("Available")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model ServiceVehicle {
+  id         Int      @id @default(autoincrement())
+  name       String
+  equipment  String?
+  hourlyRate Float    @default(0)
+  status     String   @default("Available")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model VehicleTerritory {
+  id          Int     @id @default(autoincrement())
+  vehicleId   Int
+  vehicleType String  // "delivery" or "service"
+  territoryId Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  territory Territory @relation(fields: [territoryId], references: [id], onDelete: Cascade)
+
+  @@unique([vehicleId, territoryId])
 }

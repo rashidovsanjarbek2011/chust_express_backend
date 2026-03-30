@@ -47,6 +47,21 @@
           <label
             class="text-zinc-400 text-xs font-bold uppercase tracking-widest mb-2 block"
           >
+            Extra Code (Optional)
+          </label>
+          <input
+            v-model="extraCode"
+            type="text"
+            class="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-white focus:outline-none focus:border-orange-500 transition-all font-mono tracking-wider"
+            placeholder="EXT-XXXXXX"
+          />
+          <p class="text-zinc-600 text-xs mt-1">For extra-user access</p>
+        </div>
+
+        <div>
+          <label
+            class="text-zinc-400 text-xs font-bold uppercase tracking-widest mb-2 block"
+          >
             Manager Code
           </label>
           <input
@@ -96,6 +111,7 @@ export default {
     return {
       email: "",
       password: "",
+      extraCode: "",
       managerCode: "",
       isDelivery: false,
       loading: false,
@@ -114,6 +130,7 @@ export default {
           email: this.email,
           password: this.password,
           managerCode: this.managerCode,
+          extraCode: this.extraCode,
           isDelivery: this.isDelivery,
         });
 
@@ -124,9 +141,9 @@ export default {
           throw new Error("No authentication token received from server");
         }
 
-        if (userData.role !== "manager") {
+        if (userData.role !== "manager" && userData.role !== "extra-user") {
           throw new Error(
-            `Access denied. Your role is "${userData.role}" but manager access is required.`,
+            `Access denied. Your role is "${userData.role}" but manager or extra-user access is required.`,
           );
         }
 
@@ -143,6 +160,7 @@ export default {
       } catch (err) {
         this.password = "";
         this.managerCode = "";
+        this.extraCode = "";
 
         if (err.response) {
           const status = err.response.status;

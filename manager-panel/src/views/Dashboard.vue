@@ -14,7 +14,13 @@
             {{ managerUser?.username || managerUser?.email || "Manager" }}
           </p>
         </div>
-        <div class="flex gap-4">
+        <div class="flex gap-4 flex-wrap">
+          <router-link
+            to="/extra-panel"
+            class="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white font-black uppercase tracking-widest text-xs rounded-lg transition-all"
+          >
+            🎚️ Resources
+          </router-link>
           <button @click="logout" class="btn-danger">Logout</button>
         </div>
       </div>
@@ -500,6 +506,8 @@ export default {
           "px-2 py-0.5 bg-orange-500/20 text-orange-500 rounded text-xs font-bold uppercase",
         manager:
           "px-2 py-0.5 bg-yellow-500/20 text-yellow-500 rounded text-xs font-bold uppercase",
+        "extra-user":
+          "px-2 py-0.5 bg-cyan-500/20 text-cyan-400 rounded text-xs font-bold uppercase",
         user: "px-2 py-0.5 bg-zinc-500/20 text-zinc-500 rounded text-xs font-bold uppercase",
       };
       return badges[role] || badges.user;

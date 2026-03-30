@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 import Login from "../views/Login.vue";
 import Dashboard from "../views/Dashboard.vue";
+import ExtraPanel from "../components/ExtraPanel.vue";
 
 const routes = [
   {
@@ -16,6 +17,12 @@ const routes = [
     path: "/dashboard",
     name: "Dashboard",
     component: Dashboard,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: "/extra-panel",
+    name: "extra-panel",
+    component: ExtraPanel,
     meta: { requiresAuth: true, requiresAdmin: true },
   },
 ];

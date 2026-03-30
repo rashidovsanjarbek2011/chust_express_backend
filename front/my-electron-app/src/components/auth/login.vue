@@ -74,6 +74,15 @@
           
           <div class="grid grid-cols-2 gap-4">
             <div>
+              <label class="block text-zinc-500 font-black uppercase text-[9px] tracking-widest mb-1.5">Extra Kodi</label>
+              <input
+                v-model="formData.extraCode"
+                type="text"
+                placeholder="EXT-XXXXXX"
+                class="w-full bg-zinc-900/30 border border-zinc-800/50 focus:border-orange-500/50 rounded-lg p-3 text-white outline-none transition-all font-bold placeholder:text-zinc-800 text-xs"
+              />
+            </div>
+            <div>
               <label class="block text-zinc-500 font-black uppercase text-[9px] tracking-widest mb-1.5">Ishchi Kodi</label>
               <input
                 v-model="formData.uniqueCode"
@@ -82,6 +91,9 @@
                 class="w-full bg-zinc-900/30 border border-zinc-800/50 focus:border-green-500/50 rounded-lg p-3 text-white outline-none transition-all font-bold placeholder:text-zinc-800 text-xs"
               />
             </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="block text-zinc-500 font-black uppercase text-[9px] tracking-widest mb-1.5">Ega Kodi</label>
               <input
@@ -91,9 +103,6 @@
                 class="w-full bg-zinc-900/30 border border-zinc-800/50 focus:border-green-500/50 rounded-lg p-3 text-white outline-none transition-all font-bold placeholder:text-zinc-800 text-xs"
               />
             </div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="block text-zinc-500 font-black uppercase text-[9px] tracking-widest mb-1.5">Menejer</label>
               <input
@@ -103,6 +112,9 @@
                 class="w-full bg-zinc-900/30 border border-zinc-800/50 focus:border-green-500/50 rounded-lg p-3 text-white outline-none transition-all font-bold placeholder:text-zinc-800 text-xs"
               />
             </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="block text-zinc-500 font-black uppercase text-[9px] tracking-widest mb-1.5">Kuryer Kodi</label>
               <input
@@ -167,6 +179,7 @@ export default {
         uniqueCode: "",
         legacyCode: "",
         deliveryCode: "",
+        extraCode: "",
         managerCode: "",
         workingRegion: "",
       },
@@ -181,11 +194,12 @@ export default {
       this.error = null;
       this.success = null;
 
-      const { email, password, uniqueCode, legacyCode, deliveryCode, managerCode, workingRegion } =
+      const { email, password, uniqueCode, legacyCode, deliveryCode, extraCode, managerCode, workingRegion } =
         this.formData;
       const cleanUniqueCode = uniqueCode ? uniqueCode.trim() : null;
       const cleanLegacyCode = legacyCode ? legacyCode.trim() : null;
       const cleanDeliveryCode = deliveryCode ? deliveryCode.trim() : null;
+      const cleanExtraCode = extraCode ? extraCode.trim() : null;
       const cleanManagerCode = managerCode ? managerCode.trim() : null;
       const cleanWorkingRegion = workingRegion ? workingRegion.trim() : null;
 
@@ -205,6 +219,7 @@ export default {
             uniqueCode: cleanUniqueCode,
             legacyCode: cleanLegacyCode,
             deliveryCode: cleanDeliveryCode,
+            extraCode: cleanExtraCode,
             managerCode: cleanManagerCode,
             workingRegion: cleanWorkingRegion,
           },
@@ -237,6 +252,8 @@ export default {
             this.$router.push({ name: "delivery-lobby" });
           } else if (role === "manager") {
             this.$router.push({ name: "monitor-panel" });
+          } else if (role === "extra-user") {
+            this.$router.push({ name: "extra-panel" });
           } else {
             this.$router.push({ name: "user-dashboard" });
           }
