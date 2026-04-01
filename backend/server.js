@@ -11,7 +11,10 @@ const { Server } = require("socket.io"); // 👈 NEW: import socket.io
 dotenv.config();
 
 // --- Prisma Client ---
-const prisma = new PrismaClient();
+// Configure with connection pool limits for Render (max 17 connections)
+const prisma = new PrismaClient({
+  log: ["error", "warn"],
+});
 
 // --- EXPRESS APP ---
 const app = express();
@@ -120,6 +123,19 @@ app.use((req, res) => {
 
 app.use((err, req, res, next) => {
   console.error("❌ Server Error:", err);
+  
+  // Check for Render connection pool timeout
+  if (err.message && err.message.includes("Timed out fetching a new connection from the connection pool")) {
+    console.error("🚨 RENDER CONNECTION POOL ERROR!");
+    console.error("   Solution: Use port 5433 (pool mode) in your DATABASE_URL");
+    console.error("   Example: postgresql://user:pass@host:5433/dbname?schema=public");
+    return res.status(503).json({
+      success: false,
+      message: "Database connection pool exhausted. Check RENDER_FIX.md for solution.",
+      details: err.message,
+    });
+  }
+  
   res.status(err.status || 500).json({
     success: false,
     message: err.message || "Serverda xatolik yuz berdi",
