@@ -166,7 +166,10 @@ const startServer = async () => {
       }
     });
   } catch (error) {
-    console.error("❌ DB bilan ulanishda xatolik:", error.message);
+    console.error("❌ DB bilan ulanishda xatolik");
+    console.error("Error message:", error.message);
+    console.error("Error stack:", error.stack);
+    console.error("Full error:", JSON.stringify(error, null, 2));
     process.exit(1);
   }
 };
