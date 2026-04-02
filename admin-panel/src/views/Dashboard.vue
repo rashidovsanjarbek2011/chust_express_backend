@@ -214,6 +214,11 @@
                     Delivery Code
                   </th>
                   <th
+                    class="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-zinc-400"
+                  >
+                    Extra Code
+                  </th>
+                  <th
                     v-if="adminUser?.role !== 'manager'"
                     class="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-zinc-400"
                   >
@@ -264,6 +269,9 @@
                   </td>
                   <td class="px-6 py-4 text-sm text-zinc-400 font-mono">
                     {{ user.deliveryCode || "N/A" }}
+                  </td>
+                  <td class="px-6 py-4 text-sm text-zinc-400 font-mono">
+                    {{ user.extraCode || "N/A" }}
                   </td>
                   <td
                     v-if="adminUser?.role !== 'manager'"

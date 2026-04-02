@@ -139,6 +139,10 @@
                       Unique:
                       <span class="text-white">{{ user.uniqueCode || "-" }}</span>
                     </div>
+                    <div class="text-xs font-mono text-zinc-400">
+                      Extra:
+                      <span class="text-white">{{ user.extraCode || "-" }}</span>
+                    </div>
                   </td>
                   <td class="px-6 py-4">
                     <div class="text-xs font-mono text-zinc-400">
