@@ -377,6 +377,7 @@ export default {
       // Data
       users: [],
       orders: [],
+      autoRefreshInterval: null,
 
       // Modal
       showAssignModal: false,
@@ -401,6 +402,15 @@ export default {
 
     this.fetchUsers(); // Always fetch users first to get drivers
     this.fetchOrders();
+
+    this.autoRefreshInterval = setInterval(() => {
+      if (this.activeTab === 'users') {
+        this.fetchUsers();
+      }
+      if (this.activeTab === 'orders') {
+        this.fetchOrders();
+      }
+    }, 5000);
   },
   methods: {
     getAuthHeaders() {
@@ -435,6 +445,13 @@ export default {
         this.orders = response.data.data || response.data || [];
       } catch (err) {
         console.error("Failed to fetch orders:", err);
+      }
+    },
+
+    beforeUnmount() {
+      if (this.autoRefreshInterval) {
+        clearInterval(this.autoRefreshInterval);
+        this.autoRefreshInterval = null;
       }
     },
 

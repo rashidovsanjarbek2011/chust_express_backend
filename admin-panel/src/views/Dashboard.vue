@@ -505,6 +505,7 @@ export default {
       orders: [],
       deliveryCode: null,
       logs: [],
+      autoRefreshInterval: null,
     };
   },
   mounted() {
@@ -520,6 +521,19 @@ export default {
     this.fetchOrders();
     this.loadAutoLoggingState();
     this.addLog("INFO", "Admin dashboard loaded");
+
+    // auto-refresh user/order data every 5 seconds
+    this.autoRefreshInterval = setInterval(() => {
+      if (this.activeTab === 'users') {
+        this.fetchUsers();
+      }
+      if (this.activeTab === 'orders') {
+        this.fetchOrders();
+      }
+      if (this.activeTab === 'delivery') {
+        this.fetchDeliveryCode();
+      }
+    }, 5000);
   },
   methods: {
     getAuthHeaders() {
@@ -709,6 +723,13 @@ export default {
     formatDate(date) {
       if (!date) return "N/A";
       return new Date(date).toLocaleString();
+    },
+
+    beforeUnmount() {
+      if (this.autoRefreshInterval) {
+        clearInterval(this.autoRefreshInterval);
+        this.autoRefreshInterval = null;
+      }
     },
 
     getRoleBadge(role) {
