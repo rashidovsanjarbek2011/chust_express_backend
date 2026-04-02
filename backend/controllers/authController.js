@@ -187,7 +187,9 @@ const loginUser = async (req, res) => {
 
     // Rol o'zgargan bo'lsa yangilash
     // Shuningdek, agar login paytida isDelivery, address yoki workingRegion kelsa, ularni ham yangilash
-    const { isDelivery, address, workingRegion } = req.body;
+    const { isDelivery } = req.body;
+    const address = typeof req.body.address === "string" ? req.body.address : undefined;
+    const workingRegion = typeof req.body.workingRegion === "string" ? req.body.workingRegion : undefined;
     const updateData = {};
 
     if (user.role !== finalRole) {
@@ -196,11 +198,11 @@ const loginUser = async (req, res) => {
     if (isDelivery !== undefined) {
       updateData.isDelivery = isDelivery;
     }
-    if (address !== undefined && address.trim() !== "") {
-      updateData.address = address;
+    if (typeof address === "string" && address.trim() !== "") {
+      updateData.address = address.trim();
     }
-    if (workingRegion !== undefined && workingRegion.trim() !== "") {
-      updateData.workingRegion = workingRegion;
+    if (typeof workingRegion === "string" && workingRegion.trim() !== "") {
+      updateData.workingRegion = workingRegion.trim();
     }
 
     if (Object.keys(updateData).length > 0) {
@@ -239,7 +241,8 @@ const loginUser = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ loginUser Error:", error.message);
-    res.status(500).json({ success: false, message: "Serverda xatolik." });
+    console.error(error.stack);
+    res.status(500).json({ success: false, message: "Serverda xatolik.", error: error.message });
   }
 };
 
