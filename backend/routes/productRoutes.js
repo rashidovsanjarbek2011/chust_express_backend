@@ -3,14 +3,13 @@ const router = express.Router();
 const { protect } = require("../middleware/auth");
 const { translate } = require("google-translate-api-x");
 
-// Cache for translations to avoid repeated API calls
+// Cache for translations
 const translationCache = new Map();
 
 const translateText = async (text, targetLang) => {
   if (!text || !targetLang || targetLang === "ru") return text;
   const cacheKey = `${targetLang}:${text}`;
   if (translationCache.has(cacheKey)) return translationCache.get(cacheKey);
-
   try {
     const res = await translate(text, { to: targetLang });
     translationCache.set(cacheKey, res.text);
@@ -35,7 +34,89 @@ const translateProduct = async (product, lang) => {
 };
 
 // ====================================
-// 1. GET /api/products - Get all products (supports ?search=)
+// HELPER: Convert database image (JSON string) to frontend images (array)
+// ====================================
+const dbImageToFrontendImages = (dbImage) => {
+  if (!dbImage) return ["https://placehold.co/400x300?text=No+Image"];
+  
+  try {
+    // Try to parse as JSON (multiple images)
+    const parsed = JSON.parse(dbImage);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      return parsed.filter(img => img && img.trim());
+    }
+    return [dbImage];
+  } catch (e) {
+    // Not JSON, treat as single image
+    return [dbImage];
+  }
+};
+
+// ====================================
+// HELPER: Convert frontend images (array) to database image (JSON string)
+// ====================================
+const frontendImagesToDbImage = (images) => {
+  if (!images) {
+    return JSON.stringify(["https://placehold.co/400x300?text=No+Image"]);
+  }
+  
+  let imagesArray = [];
+  
+  if (Array.isArray(images)) {
+    imagesArray = images;
+  } else if (typeof images === "string") {
+    try {
+      const parsed = JSON.parse(images);
+      imagesArray = Array.isArray(parsed) ? parsed : [images];
+    } catch {
+      imagesArray = [images];
+    }
+  } else {
+    imagesArray = [String(images)];
+  }
+  
+  // Clean up images
+  imagesArray = imagesArray
+    .filter(img => img && typeof img === 'string' && img.trim())
+    .map(img => img.trim())
+    .slice(0, 5);
+  
+  if (imagesArray.length === 0) {
+    imagesArray = ["https://placehold.co/400x300?text=No+Image"];
+  }
+  
+  return JSON.stringify(imagesArray);
+};
+
+// ====================================
+// HELPER: Format product for frontend response
+// ====================================
+const formatProductResponse = (product) => {
+  if (!product) return product;
+  
+  return {
+    id: product.id,
+    name: product.name,
+    price: product.price,
+    stock: product.stock,
+    description: product.description,
+    category: product.category,
+    images: dbImageToFrontendImages(product.image),
+    weight: product.weight,
+    unit: product.unit,
+    currency: product.currency,
+    deliveryPrice: product.deliveryPrice,
+    isActive: product.isActive,
+    shopAddress: product.shopAddress || "",
+    ownerId: product.ownerId,
+    owner: product.owner,
+    createdAt: product.createdAt,
+    updatedAt: product.updatedAt,
+  };
+};
+
+// ====================================
+// 1. GET /api/products - Get all products
 // ====================================
 const getProducts = async (req, res) => {
   try {
@@ -66,14 +147,17 @@ const getProducts = async (req, res) => {
       orderBy: { createdAt: "desc" },
     });
 
-    // Translate if language requested
+    // Format each product (convert image JSON to images array)
+    const formattedProducts = products.map(formatProductResponse);
+
+    // Translate if needed
     const translatedProducts = lang && lang !== "ru"
-      ? await Promise.all(products.map((p) => translateProduct(p, lang)))
-      : products;
+      ? await Promise.all(formattedProducts.map((p) => translateProduct(p, lang)))
+      : formattedProducts;
 
     res.status(200).json({ 
       success: true, 
-      count: products.length, 
+      count: formattedProducts.length, 
       data: translatedProducts 
     });
   } catch (error) {
@@ -108,10 +192,12 @@ const getProductById = async (req, res) => {
       });
     }
 
+    const formattedProduct = formatProductResponse(product);
+
     const { lang } = req.query;
     const finalProduct = lang && lang !== "ru" 
-      ? await translateProduct(product, lang) 
-      : product;
+      ? await translateProduct(formattedProduct, lang) 
+      : formattedProduct;
 
     res.status(200).json({ success: true, data: finalProduct });
   } catch (error) {
@@ -125,47 +211,32 @@ const getProductById = async (req, res) => {
 };
 
 // ====================================
-// Helper function to normalize images input
-// ====================================
-const normalizeImagesInput = (images) => {
-  if (!images) return [];
-  
-  let parsed = [];
-  if (Array.isArray(images)) {
-    parsed = images.map(String);
-  } else if (typeof images === "string") {
-    const trimmed = images.trim();
-    if (!trimmed) return [];
-    try {
-      const json = JSON.parse(trimmed);
-      if (Array.isArray(json)) {
-        parsed = json.map(String);
-      } else if (typeof json === "string") {
-        parsed = [json];
-      } else {
-        parsed = [trimmed];
-      }
-    } catch {
-      parsed = [trimmed];
-    }
-  } else {
-    parsed = [String(images)];
-  }
-  
-  parsed = parsed.map(img => img && img.trim()).filter(Boolean);
-  if (parsed.length === 0) {
-    parsed = ["https://placehold.co/400x300?text=No+Image"];
-  }
-  return parsed.slice(0, 5);
-};
-
-// ====================================
-// 3. POST /api/products - Create product (Protected)
+// 3. POST /api/products - Create product with multiple images
 // ====================================
 const createProduct = async (req, res) => {
   try {
-    const { name, description, price, stock, category, images } = req.body;
-    
+    const { 
+      name, 
+      description, 
+      price, 
+      stock, 
+      category, 
+      images,
+      shopAddress,
+      weight,
+      unit,
+      currency,
+      deliveryPrice,
+      isActive 
+    } = req.body;
+
+    console.log("📦 Creating product with multiple images:");
+    console.log("  - Name:", name);
+    console.log("  - Price:", price);
+    console.log("  - Images count:", images?.length || 0);
+    console.log("  - Images:", images);
+
+    // Validation
     if (!name || !price) {
       return res.status(400).json({ 
         success: false, 
@@ -181,8 +252,13 @@ const createProduct = async (req, res) => {
       });
     }
 
-    const parsedStock = Number.isInteger(Number(stock)) ? parseInt(stock, 10) : 0;
-    const imagesArr = normalizeImagesInput(images);
+    const parsedStock = stock ? parseInt(stock, 10) : 0;
+    const parsedWeight = weight ? parseFloat(weight) : 1.0;
+    const parsedDeliveryPrice = deliveryPrice ? parseFloat(deliveryPrice) : 0.0;
+    
+    // Convert multiple images array to JSON string for database
+    const imageJsonString = frontendImagesToDbImage(images);
+    console.log("  - Stored as JSON:", imageJsonString.substring(0, 100) + "...");
 
     const product = await req.prisma.product.create({
       data: {
@@ -191,7 +267,13 @@ const createProduct = async (req, res) => {
         price: parsedPrice,
         stock: parsedStock,
         category: category ? String(category).trim() : "Not Selected",
-        images: imagesArr,
+        image: imageJsonString, // Store JSON string of multiple images
+        weight: parsedWeight,
+        unit: unit || "pcs",
+        currency: currency || "UZS",
+        deliveryPrice: parsedDeliveryPrice,
+        isActive: isActive !== undefined ? isActive : true,
+        shopAddress: shopAddress && shopAddress !== "null" ? shopAddress.trim() : "",
         ownerId: req.user.id,
       },
       include: {
@@ -201,67 +283,82 @@ const createProduct = async (req, res) => {
       },
     });
     
-    res.status(201).json({ success: true, data: product });
+    console.log("✅ Product created with ID:", product.id);
+    
+    // Format response with images array
+    const formattedProduct = formatProductResponse(product);
+    
+    res.status(201).json({ 
+      success: true, 
+      message: "Mahsulot muvaffaqiyatli yaratildi.",
+      data: formattedProduct 
+    });
   } catch (error) {
     console.error("❌ createProduct error:", error);
-
+    
     if (error.code === "P2002") {
       return res.status(400).json({
         success: false,
-        message: "Unique constraint failed.",
-        error: error.message,
-        target: error.meta?.target,
+        message: "Bu nomdagi mahsulot allaqachon mavjud.",
       });
     }
     
     if (error.code === "P2003") {
       return res.status(400).json({
         success: false,
-        message: "Foreign key constraint failed (ownerId may not exist).",
-        error: error.message,
+        message: "Foydalanuvchi topilmadi. Iltimos qayta login qiling.",
       });
     }
 
     res.status(500).json({
       success: false,
-      message: "Mahsulot yaratishda xatolik.",
-      error: error.message || "Server xatolik",
+      message: "Mahsulot yaratishda xatolik: " + error.message,
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
 
 // ====================================
-// 4. PUT /api/products/:id - Update product (Protected)
+// 4. PUT /api/products/:id - Update product
 // ====================================
 const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
     const updateData = { ...req.body };
 
-    // Handle images array
+    // Handle multiple images - convert array to JSON string
     if (updateData.images !== undefined) {
-      updateData.images = normalizeImagesInput(updateData.images);
+      updateData.image = frontendImagesToDbImage(updateData.images);
+      delete updateData.images;
     }
 
-    // Remove any legacy fields
-    delete updateData.image;
+    // Remove unwanted fields
     delete updateData.id;
     delete updateData.ownerId;
     delete updateData.createdAt;
     delete updateData.updatedAt;
 
-    // Validate and convert price
+    // Validate price
     if (updateData.price !== undefined) {
       updateData.price = isNaN(parseFloat(updateData.price)) 
         ? undefined 
         : parseFloat(updateData.price);
     }
 
-    // Validate and convert stock
+    // Validate stock
     if (updateData.stock !== undefined) {
       updateData.stock = isNaN(parseInt(updateData.stock, 10)) 
         ? undefined 
         : parseInt(updateData.stock, 10);
+    }
+
+    // Handle NULL values
+    if (updateData.shopAddress === null || updateData.shopAddress === undefined) {
+      updateData.shopAddress = "";
+    }
+    
+    if (updateData.category === null || updateData.category === 'null') {
+      updateData.category = "Not Selected";
     }
 
     // Remove undefined values
@@ -279,7 +376,13 @@ const updateProduct = async (req, res) => {
       },
     });
 
-    res.status(200).json({ success: true, data: product });
+    const formattedProduct = formatProductResponse(product);
+
+    res.status(200).json({ 
+      success: true, 
+      message: "Mahsulot muvaffaqiyatli yangilandi.",
+      data: formattedProduct 
+    });
   } catch (error) {
     console.error("❌ updateProduct error:", error);
     res.status(500).json({
@@ -291,13 +394,34 @@ const updateProduct = async (req, res) => {
 };
 
 // ====================================
-// 5. DELETE /api/products/:id - Delete product (Protected)
+// 5. DELETE /api/products/:id - Delete product
 // ====================================
 const deleteProduct = async (req, res) => {
   try {
-    await req.prisma.product.delete({ 
-      where: { id: parseInt(req.params.id) } 
+    const productId = parseInt(req.params.id);
+    
+    const product = await req.prisma.product.findUnique({
+      where: { id: productId },
     });
+    
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Mahsulot topilmadi.",
+      });
+    }
+    
+    if (product.ownerId !== req.user.id && req.user.role !== 'ADMIN') {
+      return res.status(403).json({
+        success: false,
+        message: "Siz faqat o'zingizning mahsulotingizni o'chira olasiz.",
+      });
+    }
+    
+    await req.prisma.product.delete({ 
+      where: { id: productId } 
+    });
+    
     res.status(200).json({ 
       success: true, 
       message: "Mahsulot o'chirildi." 
@@ -313,7 +437,7 @@ const deleteProduct = async (req, res) => {
 };
 
 // ====================================
-// 6. GET /api/products/seller/stats - Seller stats (Protected)
+// 6. GET /api/products/seller/stats - Seller stats
 // ====================================
 const getSellerStats = async (req, res) => {
   try {
@@ -344,17 +468,18 @@ const getSellerStats = async (req, res) => {
         (acc, item) => acc + item.quantity * item.price,
         0,
       );
+      const formatted = formatProductResponse(product);
       return {
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        stock: product.stock,
+        id: formatted.id,
+        name: formatted.name,
+        price: formatted.price,
+        stock: formatted.stock,
         soldCount,
         totalRevenue,
-        images: product.images,
-        shopAddress: product.shopAddress,
-        category: product.category,
-        isActive: product.isActive,
+        images: formatted.images,
+        shopAddress: formatted.shopAddress,
+        category: formatted.category,
+        isActive: formatted.isActive,
       };
     });
     
@@ -416,7 +541,7 @@ router.get("/", getProducts);
 router.get("/categories", getCategories);
 router.get("/:id", getProductById);
 
-// Protected Routes (Authentication required)
+// Protected Routes
 router.use(protect);
 router.get("/seller/stats", getSellerStats);
 router.post("/", createProduct);
