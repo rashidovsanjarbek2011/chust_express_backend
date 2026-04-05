@@ -46,25 +46,25 @@ model Shop {
 }
 
 model Product {
-  id            Int         @id @default(autoincrement())
+  id            Int      @id @default(autoincrement())
   name          String
-  description   String?
   price         Float
-  stock         Int         @default(0)
-  weight        Float?      @default(1.0)
-  image         String?
-  category      String?     @default("Not Selected")
-  isActive      Boolean     @default(true)
+  stock         Int      @default(0)
+  description   String?
+  category      String   @default("Not Selected")
+  image         String?   // Keep old field
+  images        Json     @default("[]")  // Add new field
+  weight        Float    @default(1.0)
+  unit          String   @default("pcs")
+  currency      String   @default("UZS")
+  deliveryPrice Float    @default(0.0)
+  isActive      Boolean  @default(true)
+  shopAddress   String   @default("")
   ownerId       Int
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  currency      String      @default("UZS")
-  deliveryPrice Float       @default(0.0)
-  unit          String      @default("pcs")
-  shopAddress   String?
-
+  owner         User     @relation(fields: [ownerId], references: [id])
   orderItems    OrderItem[]
-  owner         User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model Order {

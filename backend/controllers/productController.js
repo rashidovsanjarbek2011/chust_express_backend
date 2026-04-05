@@ -1,3 +1,72 @@
+// Helper function to format product for frontend
+const formatProductForFrontend = (product) => {
+  if (!product) return product;
+  
+  // Parse images - handle both array and string formats
+  let imagesArray = [];
+  
+  if (product.images && Array.isArray(product.images)) {
+    // New format: images array
+    imagesArray = product.images;
+  } else if (product.image) {
+    // Old format: single image string
+    try {
+      // Try to parse as JSON (if stored as JSON string)
+      const parsed = JSON.parse(product.image);
+      if (Array.isArray(parsed)) {
+        imagesArray = parsed;
+      } else {
+        imagesArray = [parsed];
+      }
+    } catch {
+      // Not JSON, treat as single string
+      imagesArray = [product.image];
+    }
+  }
+  
+  // Filter out empty/null images and ensure we have at least one
+  imagesArray = imagesArray.filter(img => img && img.trim());
+  if (imagesArray.length === 0) {
+    imagesArray = ["https://placehold.co/400x300?text=No+Image"];
+  }
+  
+  return {
+    ...product,
+    shopAddress: product.shopAddress || "",
+    images: imagesArray,
+    image: undefined, // Remove old field
+  };
+};
+
+// Helper function to format images for database
+const formatImagesForDatabase = (images) => {
+  if (!images) return null;
+  
+  let imagesArray = [];
+  
+  // Handle different input formats
+  if (Array.isArray(images)) {
+    imagesArray = images;
+  } else if (typeof images === "string") {
+    try {
+      const parsed = JSON.parse(images);
+      imagesArray = Array.isArray(parsed) ? parsed : [parsed];
+    } catch {
+      imagesArray = [images];
+    }
+  }
+  
+  // Filter and clean up
+  imagesArray = imagesArray.filter(img => img && img.trim()).slice(0, 5);
+  
+  if (imagesArray.length === 0) {
+    return null;
+  }
+  
+  // Store as JSON string for compatibility
+  return JSON.stringify(imagesArray);
+};
+
 // @desc    Fetch all products
 // @route   GET /api/products
 // @access  Public
@@ -15,18 +84,22 @@ exports.getProducts = async (req, res) => {
           },
         },
       },
+      orderBy: { createdAt: "desc" },
     });
+
+    const formattedProducts = products.map(formatProductForFrontend);
 
     res.status(200).json({
       success: true,
-      count: products.length,
-      data: products,
+      count: formattedProducts.length,
+      data: formattedProducts,
     });
   } catch (error) {
     console.error("Error fetching products:", error.message);
     res.status(500).json({
       success: false,
-      message: "Server error while fetching products.",
+      message: "Mahsulotlarni olishda xatolik.",
+      error: error.message,
     });
   }
 };
@@ -57,8 +130,6 @@ exports.getProductById = async (req, res) => {
             address: true,
           },
         },
-        // orderItems removed - not needed for product details view
-        // and causes severe performance issues for popular products
       },
     });
 
@@ -71,7 +142,7 @@ exports.getProductById = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      data: product,
+      data: formatProductForFrontend(product),
     });
   } catch (error) {
     console.error("Error fetching product:", error.message);
@@ -84,7 +155,7 @@ exports.getProductById = async (req, res) => {
 
 // @desc    Create a new product
 // @route   POST /api/products
-// @access  Private (Shop Worker / Shop Owner / Admin)
+// @access  Private
 exports.createProduct = async (req, res) => {
   try {
     const {
@@ -93,7 +164,7 @@ exports.createProduct = async (req, res) => {
       stock,
       description,
       category,
-      image,
+      images,
       isActive,
       weight,
       shopAddress,
@@ -101,6 +172,8 @@ exports.createProduct = async (req, res) => {
       currency,
       deliveryPrice,
     } = req.body;
+
+    console.log("Received product data:", { name, price, images }); // Debug log
 
     // Validation
     if (!name || typeof name !== "string" || name.trim().length < 2) {
@@ -129,10 +202,13 @@ exports.createProduct = async (req, res) => {
     const parsedWeight = weight ? parseFloat(weight) : 1.0;
     const parsedDeliveryPrice = deliveryPrice ? parseFloat(deliveryPrice) : 0.0;
 
-    // Get ownerId from authenticated user
+    // Format images for database
+    const imageData = formatImagesForDatabase(images);
+    
+    console.log("Formatted image data:", imageData); // Debug log
+
     const ownerId = req.user.id;
 
-    // Create product with ownerId
     const product = await req.prisma.product.create({
       data: {
         name: name.trim(),
@@ -140,14 +216,14 @@ exports.createProduct = async (req, res) => {
         stock: parsedStock,
         description: description || null,
         category: category && category !== 'null' ? category : "Not Selected",
-        image: image || null,
+        image: imageData, // Store as JSON string
         weight: parsedWeight,
         unit: unit || "pcs",
         currency: currency || "UZS",
         deliveryPrice: parsedDeliveryPrice,
         isActive: isActive !== undefined ? isActive : true,
         shopAddress: shopAddress && shopAddress !== "null" ? shopAddress.trim() : "",
-        ownerId: ownerId, // CRITICAL: Link to user who created it
+        ownerId: ownerId,
       },
       include: {
         owner: {
@@ -162,23 +238,15 @@ exports.createProduct = async (req, res) => {
       },
     });
 
+    console.log("Product created with image:", product.image); // Debug log
+
     res.status(201).json({
       success: true,
       message: "Mahsulot muvaffaqiyatli yaratildi.",
-      data: product,
+      data: formatProductForFrontend(product),
     });
   } catch (error) {
-    console.error("Error creating product:", error.message);
-    console.error("Full error:", error);
-
-    // Handle specific Prisma errors
-    if (error.code === "P2003") {
-      return res.status(400).json({
-        success: false,
-        message: "Noto'g'ri foydalanuvchi ID si.",
-      });
-    }
-
+    console.error("Error creating product:", error);
     res.status(500).json({
       success: false,
       message: "Serverda xatolik yuz berdi.",
@@ -189,7 +257,7 @@ exports.createProduct = async (req, res) => {
 
 // @desc    Update a product
 // @route   PUT /api/products/:id
-// @access  Private (Shop Worker / Shop Owner / Admin)
+// @access  Private
 exports.updateProduct = async (req, res) => {
   try {
     const productId = parseInt(req.params.id, 10);
@@ -201,29 +269,33 @@ exports.updateProduct = async (req, res) => {
       });
     }
 
-    // Check if product exists
-    const product = await req.prisma.product.findUnique({
+    const existingProduct = await req.prisma.product.findUnique({
       where: { id: productId },
     });
 
-    if (!product) {
+    if (!existingProduct) {
       return res.status(404).json({
         success: false,
         message: "Product not found.",
       });
     }
 
-    // Prepare update data
     const updateData = { ...req.body };
+
+    // Handle images
+    if (updateData.images !== undefined) {
+      updateData.image = formatImagesForDatabase(updateData.images);
+      delete updateData.images;
+    }
 
     // Remove unwanted fields
     delete updateData.id;
-    delete updateData.ownerId; // Don't allow changing owner
+    delete updateData.ownerId;
     delete updateData.createdAt;
     delete updateData.updatedAt;
 
-    // Validate and convert price
-    if (updateData.price) {
+    // Validate price
+    if (updateData.price !== undefined) {
       const parsedPrice = parseFloat(updateData.price);
       if (isNaN(parsedPrice) || parsedPrice < 0) {
         return res.status(400).json({
@@ -234,8 +306,8 @@ exports.updateProduct = async (req, res) => {
       updateData.price = parsedPrice;
     }
 
-    // Validate and convert stock
-    if (updateData.stock) {
+    // Validate stock
+    if (updateData.stock !== undefined) {
       const parsedStock = parseInt(updateData.stock, 10);
       if (isNaN(parsedStock) || parsedStock < 0) {
         return res.status(400).json({
@@ -246,29 +318,14 @@ exports.updateProduct = async (req, res) => {
       updateData.stock = parsedStock;
     }
 
-    // Validate and convert weight
-    if (updateData.weight) {
-      const parsedWeight = parseFloat(updateData.weight);
-      if (isNaN(parsedWeight) || parsedWeight < 0) {
-        return res.status(400).json({
-          success: false,
-          message: "Weight must be a valid non-negative number.",
-        });
-      }
-      updateData.weight = parsedWeight;
+    // Handle NULL values
+    if (updateData.shopAddress === null || updateData.shopAddress === undefined) {
+      updateData.shopAddress = "";
     }
-
     if (updateData.category === null || updateData.category === 'null') {
       updateData.category = "Not Selected";
     }
 
-    if (updateData.shopAddress === null || updateData.shopAddress === "null" || updateData.shopAddress === undefined) {
-      updateData.shopAddress = "";
-    } else if (typeof updateData.shopAddress === "string") {
-      updateData.shopAddress = updateData.shopAddress.trim();
-    }
-
-    // Update the product
     const updatedProduct = await req.prisma.product.update({
       where: { id: productId },
       data: updateData,
@@ -288,7 +345,7 @@ exports.updateProduct = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Mahsulot muvaffaqiyatli yangilandi.",
-      data: updatedProduct,
+      data: formatProductForFrontend(updatedProduct),
     });
   } catch (error) {
     console.error("Error updating product:", error.message);
@@ -301,7 +358,7 @@ exports.updateProduct = async (req, res) => {
 
 // @desc    Delete a product
 // @route   DELETE /api/products/:id
-// @access  Private (Shop Worker / Shop Owner / Admin)
+// @access  Private
 exports.deleteProduct = async (req, res) => {
   try {
     const productId = parseInt(req.params.id, 10);
@@ -313,7 +370,6 @@ exports.deleteProduct = async (req, res) => {
       });
     }
 
-    // Check if product exists
     const product = await req.prisma.product.findUnique({
       where: { id: productId },
     });
@@ -325,7 +381,6 @@ exports.deleteProduct = async (req, res) => {
       });
     }
 
-    // Delete the product
     await req.prisma.product.delete({
       where: { id: productId },
     });
@@ -343,9 +398,9 @@ exports.deleteProduct = async (req, res) => {
   }
 };
 
-// @desc    Get stats for seller's products (sold count, revenue, etc.)
+// @desc    Get seller stats
 // @route   GET /api/products/seller/stats
-// @access  Private (Shop Worker / Shop Owner / Admin)
+// @access  Private
 exports.getSellerStats = async (req, res) => {
   try {
     const products = await req.prisma.product.findMany({
@@ -369,17 +424,18 @@ exports.getSellerStats = async (req, res) => {
         (acc, item) => acc + item.quantity * item.price,
         0,
       );
+      const formatted = formatProductForFrontend(product);
       return {
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        stock: product.stock,
+        id: formatted.id,
+        name: formatted.name,
+        price: formatted.price,
+        stock: formatted.stock,
         soldCount,
         totalRevenue,
-        image: product.image,
-        shopAddress: product.shopAddress,
-        category: product.category,
-        isActive: product.isActive,
+        images: formatted.images,
+        shopAddress: formatted.shopAddress,
+        category: formatted.category,
+        isActive: formatted.isActive,
       };
     });
 
