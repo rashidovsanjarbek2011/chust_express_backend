@@ -1,49 +1,54 @@
+// ==================================================
+// productController.js
+// ==================================================
+// Uses req.prisma injected by server.js middleware
+// All database operations are safe and compatible with Render
+// ==================================================
+
 // Helper function to format product for frontend
 const formatProductForFrontend = (product) => {
   if (!product) return product;
-  
-  // Parse images - handle both array and string formats
+
   let imagesArray = [];
-  
-  if (product.images && Array.isArray(product.images)) {
-    // New format: images array
-    imagesArray = product.images;
-  } else if (product.image) {
-    // Old format: single image string
+
+  // Use the existing 'image' column from database
+  if (product.image) {
     try {
-      // Try to parse as JSON (if stored as JSON string)
+      // Try to parse as JSON string (if stored as JSON)
       const parsed = JSON.parse(product.image);
       if (Array.isArray(parsed)) {
         imagesArray = parsed;
       } else {
         imagesArray = [parsed];
       }
-    } catch {
-      // Not JSON, treat as single string
+    } catch (e) {
+      // Not JSON, treat as single image string
       imagesArray = [product.image];
     }
   }
-  
-  // Filter out empty/null images and ensure we have at least one
+
+  // Filter out empty/null images
   imagesArray = imagesArray.filter(img => img && img.trim());
+
+  // Ensure we have at least one image
   if (imagesArray.length === 0) {
     imagesArray = ["https://placehold.co/400x300?text=No+Image"];
   }
-  
+
   return {
     ...product,
     shopAddress: product.shopAddress || "",
-    images: imagesArray,
-    image: undefined, // Remove old field
+    images: imagesArray,   // frontend expects 'images' array
+    image: undefined,      // remove the old singular field
   };
 };
 
-// Helper function to format images for database
+// Helper function to format images for database (stores as JSON string in 'image' column)
 const formatImagesForDatabase = (images) => {
-  if (!images) return null;
-  
+  if (!images) return JSON.stringify(["https://placehold.co/400x300?text=No+Image"]);
+
   let imagesArray = [];
-  
+
   // Handle different input formats
   if (Array.isArray(images)) {
     imagesArray = images;
@@ -54,26 +59,82 @@ const formatImagesForDatabase = (images) => {
     } catch {
       imagesArray = [images];
     }
+  } else {
+    imagesArray = [String(images)];
   }
-  
+
   // Filter and clean up
-  imagesArray = imagesArray.filter(img => img && img.trim()).slice(0, 5);
-  
+  imagesArray = imagesArray.filter(img => {
+    if (!img || typeof img !== 'string') return false;
+    const trimmed = img.trim();
+    return trimmed.length > 0;
+  });
+
+  // Limit to 5 images
+  imagesArray = imagesArray.slice(0, 5);
+
   if (imagesArray.length === 0) {
-    return null;
+    imagesArray = ["https://placehold.co/400x300?text=No+Image"];
   }
-  
-  // Store as JSON string for compatibility
+
+  // Store as JSON string in the 'image' column
   return JSON.stringify(imagesArray);
 };
 
-// @desc    Fetch all products
+// ==================================================
+// CONTROLLER FUNCTIONS
+// ==================================================
+
+// @desc    Fetch all products with pagination & filtering
 // @route   GET /api/products
 // @access  Public
 exports.getProducts = async (req, res) => {
   try {
+    const { search, category, page = 1, limit = 20 } = req.query;
+
+    // Build where clause for filtering
+    const where = {};
+
+    if (category && category !== 'all' && typeof category === 'string' && category.trim()) {
+      where.category = category;
+    }
+
+    if (search && typeof search === 'string' && search.trim()) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+        { category: { contains: search, mode: 'insensitive' } }
+      ];
+    }
+
+    // Parse pagination
+    const pageNum = parseInt(page, 10) || 1;
+    const limitNum = parseInt(limit, 10) || 20;
+    const skip = (pageNum - 1) * limitNum;
+
+    // Get total count
+    const total = await req.prisma.product.count({ where });
+
+    // Fetch products
     const products = await req.prisma.product.findMany({
-      include: {
+      where,
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        stock: true,
+        description: true,
+        category: true,
+        image: true,
+        weight: true,
+        unit: true,
+        currency: true,
+        deliveryPrice: true,
+        isActive: true,
+        shopAddress: true,
+        ownerId: true,
+        createdAt: true,
+        updatedAt: true,
         owner: {
           select: {
             id: true,
@@ -84,7 +145,9 @@ exports.getProducts = async (req, res) => {
           },
         },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: limitNum,
     });
 
     const formattedProducts = products.map(formatProductForFrontend);
@@ -92,14 +155,21 @@ exports.getProducts = async (req, res) => {
     res.status(200).json({
       success: true,
       count: formattedProducts.length,
-      data: formattedProducts,
+      total: total,
+      data: {
+        products: formattedProducts,
+        total,
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(total / limitNum),
+      },
     });
   } catch (error) {
-    console.error("Error fetching products:", error.message);
+    console.error("Error fetching products:", error);
     res.status(500).json({
       success: false,
       message: "Mahsulotlarni olishda xatolik.",
-      error: error.message,
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
@@ -110,17 +180,29 @@ exports.getProducts = async (req, res) => {
 exports.getProductById = async (req, res) => {
   try {
     const productId = parseInt(req.params.id, 10);
-
     if (isNaN(productId)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid product ID.",
-      });
+      return res.status(400).json({ success: false, message: "Invalid product ID." });
     }
 
     const product = await req.prisma.product.findUnique({
       where: { id: productId },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        stock: true,
+        description: true,
+        category: true,
+        image: true,
+        weight: true,
+        unit: true,
+        currency: true,
+        deliveryPrice: true,
+        isActive: true,
+        shopAddress: true,
+        ownerId: true,
+        createdAt: true,
+        updatedAt: true,
         owner: {
           select: {
             id: true,
@@ -134,10 +216,7 @@ exports.getProductById = async (req, res) => {
     });
 
     if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: "Product not found.",
-      });
+      return res.status(404).json({ success: false, message: "Product not found." });
     }
 
     res.status(200).json({
@@ -145,10 +224,11 @@ exports.getProductById = async (req, res) => {
       data: formatProductForFrontend(product),
     });
   } catch (error) {
-    console.error("Error fetching product:", error.message);
+    console.error("Error fetching product:", error);
     res.status(500).json({
       success: false,
       message: "Server error while fetching product.",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
@@ -173,41 +253,24 @@ exports.createProduct = async (req, res) => {
       deliveryPrice,
     } = req.body;
 
-    console.log("Received product data:", { name, price, images }); // Debug log
-
     // Validation
     if (!name || typeof name !== "string" || name.trim().length < 2) {
-      return res.status(400).json({
-        success: false,
-        message: "Mahsulot nomi kamida 2 ta belgi bo'lishi kerak.",
-      });
+      return res.status(400).json({ success: false, message: "Mahsulot nomi kamida 2 ta belgi bo'lishi kerak." });
     }
 
     const parsedPrice = parseFloat(price);
     if (isNaN(parsedPrice) || parsedPrice < 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Narx noto'g'ri.",
-      });
+      return res.status(400).json({ success: false, message: "Narx noto'g'ri." });
     }
 
     const parsedStock = stock ? parseInt(stock, 10) : 0;
     if (isNaN(parsedStock) || parsedStock < 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Soni noto'g'ri.",
-      });
+      return res.status(400).json({ success: false, message: "Soni noto'g'ri." });
     }
 
     const parsedWeight = weight ? parseFloat(weight) : 1.0;
     const parsedDeliveryPrice = deliveryPrice ? parseFloat(deliveryPrice) : 0.0;
-
-    // Format images for database
     const imageData = formatImagesForDatabase(images);
-    
-    console.log("Formatted image data:", imageData); // Debug log
-
-    const ownerId = req.user.id;
 
     const product = await req.prisma.product.create({
       data: {
@@ -216,16 +279,32 @@ exports.createProduct = async (req, res) => {
         stock: parsedStock,
         description: description || null,
         category: category && category !== 'null' ? category : "Not Selected",
-        image: imageData, // Store as JSON string
+        image: imageData,
         weight: parsedWeight,
         unit: unit || "pcs",
         currency: currency || "UZS",
         deliveryPrice: parsedDeliveryPrice,
         isActive: isActive !== undefined ? isActive : true,
         shopAddress: shopAddress && shopAddress !== "null" ? shopAddress.trim() : "",
-        ownerId: ownerId,
+        ownerId: req.user.id,
       },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        stock: true,
+        description: true,
+        category: true,
+        image: true,
+        weight: true,
+        unit: true,
+        currency: true,
+        deliveryPrice: true,
+        isActive: true,
+        shopAddress: true,
+        ownerId: true,
+        createdAt: true,
+        updatedAt: true,
         owner: {
           select: {
             id: true,
@@ -238,8 +317,6 @@ exports.createProduct = async (req, res) => {
       },
     });
 
-    console.log("Product created with image:", product.image); // Debug log
-
     res.status(201).json({
       success: true,
       message: "Mahsulot muvaffaqiyatli yaratildi.",
@@ -247,10 +324,15 @@ exports.createProduct = async (req, res) => {
     });
   } catch (error) {
     console.error("Error creating product:", error);
+    if (error.code === "P2002") {
+      return res.status(400).json({ success: false, message: "Bu nomdagi mahsulot allaqachon mavjud." });
+    }
+    if (error.code === "P2003") {
+      return res.status(400).json({ success: false, message: "Foydalanuvchi topilmadi. Iltimos qayta login qiling." });
+    }
     res.status(500).json({
       success: false,
-      message: "Serverda xatolik yuz berdi.",
-      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+      message: "Mahsulot yaratishda xatolik: " + error.message,
     });
   }
 };
@@ -261,75 +343,66 @@ exports.createProduct = async (req, res) => {
 exports.updateProduct = async (req, res) => {
   try {
     const productId = parseInt(req.params.id, 10);
-
     if (isNaN(productId)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid product ID.",
-      });
+      return res.status(400).json({ success: false, message: "Invalid product ID." });
     }
 
-    const existingProduct = await req.prisma.product.findUnique({
-      where: { id: productId },
-    });
-
+    const existingProduct = await req.prisma.product.findUnique({ where: { id: productId } });
     if (!existingProduct) {
-      return res.status(404).json({
-        success: false,
-        message: "Product not found.",
-      });
+      return res.status(404).json({ success: false, message: "Product not found." });
+    }
+    if (existingProduct.ownerId !== req.user.id && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ success: false, message: "Siz faqat o'zingizning mahsulotingizni tahrirlashingiz mumkin." });
     }
 
     const updateData = { ...req.body };
-
-    // Handle images
     if (updateData.images !== undefined) {
       updateData.image = formatImagesForDatabase(updateData.images);
       delete updateData.images;
     }
-
-    // Remove unwanted fields
     delete updateData.id;
     delete updateData.ownerId;
     delete updateData.createdAt;
     delete updateData.updatedAt;
 
-    // Validate price
     if (updateData.price !== undefined) {
-      const parsedPrice = parseFloat(updateData.price);
-      if (isNaN(parsedPrice) || parsedPrice < 0) {
-        return res.status(400).json({
-          success: false,
-          message: "Price must be a valid non-negative number.",
-        });
-      }
-      updateData.price = parsedPrice;
+      const parsed = parseFloat(updateData.price);
+      if (isNaN(parsed) || parsed < 0) return res.status(400).json({ success: false, message: "Price must be a valid non-negative number." });
+      updateData.price = parsed;
     }
-
-    // Validate stock
     if (updateData.stock !== undefined) {
-      const parsedStock = parseInt(updateData.stock, 10);
-      if (isNaN(parsedStock) || parsedStock < 0) {
-        return res.status(400).json({
-          success: false,
-          message: "Stock must be a valid non-negative integer.",
-        });
-      }
-      updateData.stock = parsedStock;
+      const parsed = parseInt(updateData.stock, 10);
+      if (isNaN(parsed) || parsed < 0) return res.status(400).json({ success: false, message: "Stock must be a valid non-negative integer." });
+      updateData.stock = parsed;
     }
-
-    // Handle NULL values
-    if (updateData.shopAddress === null || updateData.shopAddress === undefined) {
-      updateData.shopAddress = "";
+    if (updateData.weight !== undefined) {
+      const parsed = parseFloat(updateData.weight);
+      if (isNaN(parsed) || parsed < 0) return res.status(400).json({ success: false, message: "Weight must be a valid non-negative number." });
+      updateData.weight = parsed;
     }
-    if (updateData.category === null || updateData.category === 'null') {
-      updateData.category = "Not Selected";
-    }
+    if (updateData.shopAddress === null || updateData.shopAddress === undefined) updateData.shopAddress = "";
+    if (updateData.category === null || updateData.category === 'null') updateData.category = "Not Selected";
 
     const updatedProduct = await req.prisma.product.update({
       where: { id: productId },
       data: updateData,
-      include: {
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        stock: true,
+        description: true,
+        category: true,
+        image: true,
+        weight: true,
+        unit: true,
+        currency: true,
+        deliveryPrice: true,
+        isActive: true,
+        shopAddress: true,
+        ownerId: true,
+        createdAt: true,
+        updatedAt: true,
         owner: {
           select: {
             id: true,
@@ -348,11 +421,8 @@ exports.updateProduct = async (req, res) => {
       data: formatProductForFrontend(updatedProduct),
     });
   } catch (error) {
-    console.error("Error updating product:", error.message);
-    res.status(500).json({
-      success: false,
-      message: "Server error while updating product.",
-    });
+    console.error("Error updating product:", error);
+    res.status(500).json({ success: false, message: "Server error while updating product." });
   }
 };
 
@@ -362,68 +432,51 @@ exports.updateProduct = async (req, res) => {
 exports.deleteProduct = async (req, res) => {
   try {
     const productId = parseInt(req.params.id, 10);
-
     if (isNaN(productId)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid product ID.",
-      });
+      return res.status(400).json({ success: false, message: "Invalid product ID." });
     }
 
-    const product = await req.prisma.product.findUnique({
-      where: { id: productId },
-    });
-
+    const product = await req.prisma.product.findUnique({ where: { id: productId } });
     if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: "Product not found.",
-      });
+      return res.status(404).json({ success: false, message: "Product not found." });
+    }
+    if (product.ownerId !== req.user.id && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ success: false, message: "Siz faqat o'zingizning mahsulotingizni o'chira olasiz." });
     }
 
-    await req.prisma.product.delete({
-      where: { id: productId },
-    });
-
-    res.status(200).json({
-      success: true,
-      message: "Mahsulot muvaffaqiyatli o'chirildi.",
-    });
+    await req.prisma.product.delete({ where: { id: productId } });
+    res.status(200).json({ success: true, message: "Mahsulot muvaffaqiyatli o'chirildi." });
   } catch (error) {
-    console.error("Error deleting product:", error.message);
-    res.status(500).json({
-      success: false,
-      message: "Server error while deleting product.",
-    });
+    console.error("Error deleting product:", error);
+    res.status(500).json({ success: false, message: "Server error while deleting product." });
   }
 };
 
-// @desc    Get seller stats
+// @desc    Get seller's products stats
 // @route   GET /api/products/seller/stats
 // @access  Private
 exports.getSellerStats = async (req, res) => {
   try {
     const products = await req.prisma.product.findMany({
       where: { ownerId: req.user.id },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        stock: true,
+        image: true,
+        shopAddress: true,
+        category: true,
+        isActive: true,
         orderItems: {
-          select: {
-            quantity: true,
-            price: true,
-          },
+          select: { quantity: true, price: true },
         },
       },
     });
 
     const stats = products.map((product) => {
-      const soldCount = product.orderItems.reduce(
-        (acc, item) => acc + item.quantity,
-        0,
-      );
-      const totalRevenue = product.orderItems.reduce(
-        (acc, item) => acc + item.quantity * item.price,
-        0,
-      );
+      const soldCount = product.orderItems.reduce((acc, item) => acc + item.quantity, 0);
+      const totalRevenue = product.orderItems.reduce((acc, item) => acc + item.quantity * item.price, 0);
       const formatted = formatProductForFrontend(product);
       return {
         id: formatted.id,
@@ -439,15 +492,69 @@ exports.getSellerStats = async (req, res) => {
       };
     });
 
+    res.status(200).json({ success: true, data: stats });
+  } catch (error) {
+    console.error("Error fetching seller stats:", error);
+    res.status(500).json({ success: false, message: "Server error while fetching stats." });
+  }
+};
+
+// @desc    Get all categories
+// @route   GET /api/products/categories/list
+// @access  Public
+exports.getCategories = async (req, res) => {
+  try {
+    const categories = await req.prisma.product.findMany({
+      where: { category: { not: "Not Selected" } },
+      distinct: ['category'],
+      select: { category: true },
+    });
+
+    const categoryList = categories.map(c => c.category).filter(Boolean);
+    res.status(200).json({ success: true, data: categoryList });
+  } catch (error) {
+    console.error("Error fetching categories:", error);
+    res.status(500).json({ success: false, message: "Server error while fetching categories." });
+  }
+};
+
+// @desc    Toggle product active status
+// @route   PATCH /api/products/:id/toggle
+// @access  Private
+exports.toggleProductStatus = async (req, res) => {
+  try {
+    const productId = parseInt(req.params.id, 10);
+    if (isNaN(productId)) {
+      return res.status(400).json({ success: false, message: "Invalid product ID." });
+    }
+
+    const product = await req.prisma.product.findUnique({ where: { id: productId } });
+    if (!product) {
+      return res.status(404).json({ success: false, message: "Product not found." });
+    }
+    if (product.ownerId !== req.user.id && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ success: false, message: "Siz faqat o'zingizning mahsulotingizni o'zgartira olasiz." });
+    }
+
+    const updatedProduct = await req.prisma.product.update({
+      where: { id: productId },
+      data: { isActive: !product.isActive },
+      select: {
+        id: true,
+        name: true,
+        image: true,
+        isActive: true,
+        owner: { select: { id: true, username: true } },
+      },
+    });
+
     res.status(200).json({
       success: true,
-      data: stats,
+      message: `Mahsulot ${updatedProduct.isActive ? 'faollashtirildi' : 'faolsizlantirildi'}.`,
+      data: formatProductForFrontend(updatedProduct),
     });
   } catch (error) {
-    console.error("Error fetching seller stats:", error.message);
-    res.status(500).json({
-      success: false,
-      message: "Server error while fetching stats.",
-    });
+    console.error("Error toggling product status:", error);
+    res.status(500).json({ success: false, message: "Server error while toggling product status." });
   }
 };
