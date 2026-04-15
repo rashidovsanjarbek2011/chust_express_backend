@@ -133,7 +133,6 @@ router.put("/:id", productController.updateProduct);
 router.delete("/:id", productController.deleteProduct);
 
 // Wildcard /:id — ALWAYS LAST 
-// (We keep this inline to preserve the translation logic which is not in the controller)
-router.get("/:id", getProductById);
+router.get("/:id", productController.getProductById);
 
 module.exports = router;

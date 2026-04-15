@@ -1,5 +1,5 @@
-const prisma = require("../config/database");
-const AppError = require("../utils/appError");
+const { prisma } = require("../config/db");
+const AppError = require("../utils/ApiError");
 
 class DeliveryCarService {
   // ✅ Yangi transport vositasi yaratish
