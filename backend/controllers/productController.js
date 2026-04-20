@@ -4,6 +4,37 @@
 // Uses req.prisma injected by server.js middleware
 // All database operations are safe and compatible with Render
 // ==================================================
+const { translate } = require("google-translate-api-x");
+
+// Cache for translations to improve performance and avoid rate limits
+const translationCache = new Map();
+
+const translateText = async (text, targetLang) => {
+  if (!text || !targetLang || targetLang === "ru") return text;
+  const cacheKey = `${targetLang}:${text}`;
+  if (translationCache.has(cacheKey)) return translationCache.get(cacheKey);
+  try {
+    const res = await translate(text, { to: targetLang });
+    translationCache.set(cacheKey, res.text);
+    return res.text;
+  } catch (err) {
+    console.error("Translation error:", err.message);
+    return text;
+  }
+};
+
+const translateProduct = async (product, lang) => {
+  if (!lang || lang === "ru") return product;
+  const [translatedName, translatedDesc] = await Promise.all([
+    translateText(product.name, lang),
+    translateText(product.description, lang),
+  ]);
+  return {
+    ...product,
+    name: translatedName,
+    description: translatedDesc,
+  };
+};
 
 // Helper function to format product for frontend
 const formatProductForFrontend = (product) => {
@@ -11,11 +42,11 @@ const formatProductForFrontend = (product) => {
 
   let imagesArray = [];
 
-  // Use the existing 'image' column from database
-  if (product.image) {
+  // Use the existing 'images' column from database
+  if (product.images) {
     try {
       // Try to parse as JSON string (if stored as JSON)
-      const parsed = JSON.parse(product.image);
+      const parsed = JSON.parse(product.images);
       if (Array.isArray(parsed)) {
         imagesArray = parsed;
       } else {
@@ -23,7 +54,7 @@ const formatProductForFrontend = (product) => {
       }
     } catch (e) {
       // Not JSON, treat as single image string
-      imagesArray = [product.image];
+      imagesArray = [product.images];
     }
   }
 
@@ -77,7 +108,7 @@ const formatImagesForDatabase = (images) => {
     imagesArray = ["https://placehold.co/400x300?text=No+Image"];
   }
 
-  // Store as JSON string in the 'image' column
+  // Store as JSON string in the 'images' column
   return JSON.stringify(imagesArray);
 };
 
@@ -125,7 +156,7 @@ exports.getProducts = async (req, res) => {
         stock: true,
         description: true,
         category: true,
-        image: true,
+        images: true,
         weight: true,
         unit: true,
         currency: true,
@@ -150,7 +181,14 @@ exports.getProducts = async (req, res) => {
       take: limitNum,
     });
 
-    const formattedProducts = products.map(formatProductForFrontend);
+    const lang = req.query.lang;
+    let formattedProducts = products.map(formatProductForFrontend);
+
+    if (lang && lang !== "ru") {
+      formattedProducts = await Promise.all(
+        formattedProducts.map((p) => translateProduct(p, lang)),
+      );
+    }
 
     res.status(200).json({
       success: true,
@@ -193,7 +231,7 @@ exports.getProductById = async (req, res) => {
         stock: true,
         description: true,
         category: true,
-        image: true,
+        images: true,
         weight: true,
         unit: true,
         currency: true,
@@ -219,9 +257,15 @@ exports.getProductById = async (req, res) => {
       return res.status(404).json({ success: false, message: "Product not found." });
     }
 
+    let formattedProduct = formatProductForFrontend(product);
+    const lang = req.query.lang;
+    if (lang && lang !== "ru") {
+      formattedProduct = await translateProduct(formattedProduct, lang);
+    }
+
     res.status(200).json({
       success: true,
-      data: formatProductForFrontend(product),
+      data: formattedProduct,
     });
   } catch (error) {
     console.error("Error fetching product:", error);
@@ -279,7 +323,7 @@ exports.createProduct = async (req, res) => {
         stock: parsedStock,
         description: description || null,
         category: category && category !== 'null' ? category : "Not Selected",
-        image: imageData,
+        images: imageData,
         weight: parsedWeight,
         unit: unit || "pcs",
         currency: currency || "UZS",
@@ -295,7 +339,7 @@ exports.createProduct = async (req, res) => {
         stock: true,
         description: true,
         category: true,
-        image: true,
+        images: true,
         weight: true,
         unit: true,
         currency: true,
@@ -351,14 +395,13 @@ exports.updateProduct = async (req, res) => {
     if (!existingProduct) {
       return res.status(404).json({ success: false, message: "Product not found." });
     }
-    if (existingProduct.ownerId !== req.user.id && req.user.role !== 'ADMIN') {
+    if (existingProduct.ownerId !== req.user.id && !["administrator", "manager"].includes(req.user.role)) {
       return res.status(403).json({ success: false, message: "Siz faqat o'zingizning mahsulotingizni tahrirlashingiz mumkin." });
     }
 
     const updateData = { ...req.body };
     if (updateData.images !== undefined) {
-      updateData.image = formatImagesForDatabase(updateData.images);
-      delete updateData.images;
+      updateData.images = formatImagesForDatabase(updateData.images);
     }
     delete updateData.id;
     delete updateData.ownerId;
@@ -393,7 +436,7 @@ exports.updateProduct = async (req, res) => {
         stock: true,
         description: true,
         category: true,
-        image: true,
+        images: true,
         weight: true,
         unit: true,
         currency: true,
@@ -440,7 +483,7 @@ exports.deleteProduct = async (req, res) => {
     if (!product) {
       return res.status(404).json({ success: false, message: "Product not found." });
     }
-    if (product.ownerId !== req.user.id && req.user.role !== 'ADMIN') {
+    if (product.ownerId !== req.user.id && !["administrator", "manager"].includes(req.user.role)) {
       return res.status(403).json({ success: false, message: "Siz faqat o'zingizning mahsulotingizni o'chira olasiz." });
     }
 
@@ -464,7 +507,7 @@ exports.getSellerStats = async (req, res) => {
         name: true,
         price: true,
         stock: true,
-        image: true,
+        images: true,
         shopAddress: true,
         category: true,
         isActive: true,
@@ -532,7 +575,7 @@ exports.toggleProductStatus = async (req, res) => {
     if (!product) {
       return res.status(404).json({ success: false, message: "Product not found." });
     }
-    if (product.ownerId !== req.user.id && req.user.role !== 'ADMIN') {
+    if (product.ownerId !== req.user.id && !["administrator", "manager"].includes(req.user.role)) {
       return res.status(403).json({ success: false, message: "Siz faqat o'zingizning mahsulotingizni o'zgartira olasiz." });
     }
 
@@ -541,8 +584,8 @@ exports.toggleProductStatus = async (req, res) => {
       data: { isActive: !product.isActive },
       select: {
         id: true,
-        name: true,
-        image: true,
+        category: true,
+        images: true,
         isActive: true,
         owner: { select: { id: true, username: true } },
       },

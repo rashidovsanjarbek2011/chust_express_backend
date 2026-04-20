@@ -30,8 +30,17 @@ model User {
   address       String?
   workingRegion String?
   deliveryPrice Float?        @default(0.0)
+  extraExpiresAt DateTime?
   cardNumber    String?
   phoneNumber   String?
+  
+  // Relations to Extra Services
+  workers       Worker[]
+  vehicles      DeliveryVehicle[]
+  equipments    ConstructionEquipment[]
+  rentals       RentalService[]
+  territories   Territory[]     @relation("UserTerritories")
+
   deliveries    Delivery[]
   deliveryCars  DeliveryCar[]
   orders        Order[]
@@ -52,7 +61,7 @@ model Product {
   stock         Int      @default(0)
   description   String?
   category      String   @default("Not Selected")
-  image         String?  // 👈 SINGULAR, maps to DB column "image"
+  images        String?
   weight        Float    @default(1.0)
   unit          String   @default("pcs")
   currency      String   @default("UZS")
@@ -176,6 +185,15 @@ model ManagerCode {
   updatedAt DateTime @updatedAt
 }
 
+model ExtraCode {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique
+  duration  Int      @default(30) // in days
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 // ============================================
 // TERRITORY & RESOURCE MANAGEMENT MODELS
 // ============================================
@@ -186,8 +204,11 @@ model Territory {
   zoneType    String?
   description String?
   geometry    String?  @db.Text
+  userId      Int?     @default(1) // Link to owner
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+ 
+  user               User?             @relation("UserTerritories", fields: [userId], references: [id])
 
   orders             Order[]
   workerTerritories  WorkerTerritory[]
@@ -196,13 +217,22 @@ model Territory {
 }
 
 model Worker {
-  id        Int      @id @default(autoincrement())
-  fullName  String
-  role      String
-  phone     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            Int      @id @default(autoincrement())
+  fullName      String
+  role          String
+  phone         String?
+  description   String?
+  district      String?
+  rating        Float    @default(0)
+  photos        Json?    // Array of image URLs
+  birthDate     DateTime?
+  pricingModel  String   @default("Hourly")
+  price         Float    @default(0)
+  userId        Int      @default(1) // Link to owner
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
+  user              User              @relation(fields: [userId], references: [id])
   workerTerritories WorkerTerritory[]
 }
 
@@ -237,24 +267,44 @@ model OrderResource {
 }
 
 model ConstructionEquipment {
-  id         Int      @id @default(autoincrement())
-  name       String
-  hourlyRate Float    @default(0)
-  status     String   @default("Available")
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id            Int      @id @default(autoincrement())
+  name          String
+  hourlyRate    Float    @default(0)
+  description   String?
+  district      String?
+  rating        Float    @default(0)
+  photos        Json?
+  productionYear Int?
+  pricingModel  String   @default("Hourly")
+  price         Float    @default(0)
+  status        String   @default("Available")
+  userId        Int      @default(1)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
 }
 
 model DeliveryVehicle {
-  id         Int      @id @default(autoincrement())
-  name       String
-  capacity   Float?
-  plateNum   String?  @unique
-  hourlyRate Float?   @default(0)
-  pricePerKm Float?   @default(0)
-  status     String   @default("Available")
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id            Int      @id @default(autoincrement())
+  name          String
+  capacity      Float?
+  plateNum      String?  @unique
+  hourlyRate    Float?   @default(0)
+  pricePerKm    Float?   @default(0)
+  description   String?
+  district      String?
+  rating        Float    @default(0)
+  photos        Json?
+  productionYear Int?
+  pricingModel  String   @default("Hourly")
+  price         Float    @default(0)
+  status        String   @default("Available")
+  userId        Int      @default(1)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
 }
 
 model ServiceVehicle {
@@ -278,4 +328,22 @@ model VehicleTerritory {
   territory Territory @relation(fields: [territoryId], references: [id], onDelete: Cascade)
 
   @@unique([vehicleId, territoryId])
+}
+
+model RentalService {
+  id            Int      @id @default(autoincrement())
+  name          String
+  category      String   // Real Estate, Stage, Business, etc.
+  description   String?
+  district      String?
+  rating        Float    @default(0)
+  photos        Json?
+  pricingModel  String   @default("Daily")
+  price         Float    @default(0)
+  status        String   @default("Available")
+  userId        Int      @default(1)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
 }

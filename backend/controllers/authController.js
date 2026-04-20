@@ -24,7 +24,7 @@ const generateToken = (id, role) => {
 // 1. Oddiy foydalanuvchi ro'yxatdan o'tishi
 // ====================================
 const registerUser = async (req, res) => {
-  const { username, email, password, cardNumber, address, phoneNumber, workingRegion } = req.body;
+  const { username, email, password, cardNumber, address, phoneNumber, workingRegion, latitude, longitude } = req.body;
 
   if (!username || !email || !password || !cardNumber || !address || !phoneNumber) {
     return res.status(400).json({
@@ -57,6 +57,8 @@ const registerUser = async (req, res) => {
         email: cleanEmail,
         password: hashedPassword,
         role: "user",
+        latitude: latitude ? parseFloat(latitude) : null,
+        longitude: longitude ? parseFloat(longitude) : null,
         uniqueCode: generateUniqueCode(),
         legacyCode: generateLegacyCode(),
         managerCode: generateManagerCode(),
@@ -145,11 +147,38 @@ const loginUser = async (req, res) => {
     // Admin, Shop Worker, Shop Owner, Extra User va Kuryer kodi tekshiruvlari
     if (adminCode && adminCode.trim() === process.env.ADMIN_CODE) {
       finalRole = "administrator";
-    } else if (extraCode && extraCode.trim() === user.extraCode) {
+    } else if (extraCode && extraCode.trim()) {
+      const codeTrimmed = extraCode.trim().toLowerCase();
+      // Check user's own code or global ExtraCode table
+      let isValidExtra = (codeTrimmed === user.extraCode?.toLowerCase());
+      let durationInDays = 0;
+
+      if (!isValidExtra) {
+        const globalExtraCode = await req.prisma.extraCode.findFirst({
+          where: { code: { equals: codeTrimmed, mode: 'insensitive' }, isActive: true }
+        });
+        if (globalExtraCode) {
+          isValidExtra = true;
+          durationInDays = globalExtraCode.duration;
+        }
+      }
+
+      if (isValidExtra) {
+        finalRole = "extra-user";
+        // If it was a global code, update expiresAt
+        if (durationInDays > 0) {
+          const now = new Date();
+          const baseDate = user.extraExpiresAt && user.extraExpiresAt > now ? user.extraExpiresAt : now;
+          const newExpiresAt = new Date(baseDate.getTime() + durationInDays * 24 * 60 * 60 * 1000);
+          updateData.extraExpiresAt = newExpiresAt;
+        }
+      }
+    } else if (user.role === 'extra-user' && user.extraExpiresAt && new Date() < user.extraExpiresAt) {
+      // Keep extra-user role if still active
       finalRole = "extra-user";
-    } else if (uniqueCode && uniqueCode.trim() === user.uniqueCode) {
+    } else if (uniqueCode && uniqueCode.trim().toLowerCase() === user.uniqueCode?.toLowerCase()) {
       finalRole = "shop_worker";
-    } else if (legacyCode && legacyCode.trim() === user.legacyCode) {
+    } else if (legacyCode && legacyCode.trim().toLowerCase() === user.legacyCode?.toLowerCase()) {
       finalRole = "shop_owner";
     } else if (managerCode && managerCode.trim()) {
       const codeTrimmed = managerCode.trim();
@@ -216,6 +245,7 @@ const loginUser = async (req, res) => {
         user.isDelivery = updateData.isDelivery;
       if (updateData.address) user.address = updateData.address;
       if (updateData.workingRegion) user.workingRegion = updateData.workingRegion;
+      if (updateData.extraExpiresAt) user.extraExpiresAt = updateData.extraExpiresAt;
     }
 
     const token = generateToken(user.id, finalRole);
@@ -236,7 +266,8 @@ const loginUser = async (req, res) => {
         address: user.address,
         workingRegion: user.workingRegion,
         isDelivery: user.isDelivery,
-        deliveryPrice: user.deliveryPrice, // Include deliveryPrice in the response
+        deliveryPrice: user.deliveryPrice,
+        extraExpiresAt: user.extraExpiresAt || updateData.extraExpiresAt,
       },
     });
   } catch (error) {
@@ -283,7 +314,7 @@ const getMe = async (req, res) => {
 // 4. Do'kon xodimi ro'yxatdan o'tishi
 // ====================================
 const registerShopWorker = async (req, res) => {
-  const { username, email, password, address, isDelivery } = req.body;
+  const { username, email, password, address, isDelivery, latitude, longitude } = req.body;
   try {
     const hashedPassword = await bcrypt.hash(password, 12);
     const worker = await req.prisma.user.create({
@@ -295,6 +326,8 @@ const registerShopWorker = async (req, res) => {
         uniqueCode: generateUniqueCode(),
         address,
         isDelivery: !!isDelivery,
+        latitude: latitude ? parseFloat(latitude) : null,
+        longitude: longitude ? parseFloat(longitude) : null,
       },
     });
 
@@ -309,7 +342,7 @@ const registerShopWorker = async (req, res) => {
 // 5. Do'kon egasi ro'yxatdan o'tishi
 // ====================================
 const registerShopOwner = async (req, res) => {
-  const { username, email, password, address, isDelivery } = req.body;
+  const { username, email, password, address, isDelivery, latitude, longitude } = req.body;
   try {
     const hashedPassword = await bcrypt.hash(password, 12);
     const owner = await req.prisma.user.create({
@@ -321,6 +354,8 @@ const registerShopOwner = async (req, res) => {
         legacyCode: generateLegacyCode(),
         address,
         isDelivery: !!isDelivery,
+        latitude: latitude ? parseFloat(latitude) : null,
+        longitude: longitude ? parseFloat(longitude) : null,
       },
     });
 
@@ -335,7 +370,7 @@ const registerShopOwner = async (req, res) => {
 // 6. Kuryer ro'yxatdan o'tishi
 // ====================================
 const registerDelivery = async (req, res) => {
-  const { username, email, password, workingRegion } = req.body;
+  const { username, email, password, workingRegion, latitude, longitude } = req.body;
   try {
     const hashedPassword = await bcrypt.hash(password, 12);
 
@@ -351,6 +386,8 @@ const registerDelivery = async (req, res) => {
         isDelivery: true,
         deliveryCode: uniqueDeliveryCode,
         workingRegion: workingRegion,
+        latitude: latitude ? parseFloat(latitude) : null,
+        longitude: longitude ? parseFloat(longitude) : null,
       },
     });
 
@@ -368,7 +405,7 @@ const registerDelivery = async (req, res) => {
 // 7. Profilni yangilash
 // ====================================
 const updateProfile = async (req, res) => {
-  const { username, email, phoneNumber, address, workingRegion, cardNumber } = req.body;
+  const { username, email, phoneNumber, address, workingRegion, cardNumber, latitude, longitude } = req.body;
   
   try {
     const updateData = {};
@@ -379,6 +416,8 @@ const updateProfile = async (req, res) => {
     if (address) updateData.address = address;
     if (workingRegion) updateData.workingRegion = workingRegion;
     if (cardNumber) updateData.cardNumber = cardNumber.replace(/\s/g, "");
+    if (latitude !== undefined) updateData.latitude = parseFloat(latitude);
+    if (longitude !== undefined) updateData.longitude = parseFloat(longitude);
     
     // Check if email is being changed and if it already exists
     if (email) {
@@ -551,6 +590,50 @@ const getCouriersByRegion = async (req, res) => {
   }
 };
 
+// ====================================
+// 11. Activate Extra Code
+// ====================================
+const activateExtraCode = async (req, res) => {
+  const { code } = req.body;
+  if (!code) return res.status(400).json({ success: false, message: "Kod kiritilmadi." });
+
+  try {
+    const extraCode = await req.prisma.extraCode.findFirst({
+      where: { code: { equals: code.trim(), mode: 'insensitive' }, isActive: true }
+    });
+
+    if (!extraCode) {
+      return res.status(404).json({ success: false, message: "Yaroqsiz yoki aktiv bo'lmagan kod." });
+    }
+
+    const user = await req.prisma.user.findUnique({ where: { id: req.user.id } });
+    const now = new Date();
+    const baseDate = user.extraExpiresAt && user.extraExpiresAt > now ? user.extraExpiresAt : now;
+    const newExpiresAt = new Date(baseDate.getTime() + extraCode.duration * 24 * 60 * 60 * 1000);
+
+    const updatedUser = await req.prisma.user.update({
+      where: { id: req.user.id },
+      data: {
+        extraExpiresAt: newExpiresAt,
+        role: 'extra-user'
+      }
+    });
+
+    const newToken = generateToken(updatedUser.id, 'extra-user');
+
+    res.status(200).json({
+      success: true,
+      message: "Profil muvaffaqiyatli aktivlashtirildi!",
+      extraExpiresAt: newExpiresAt,
+      role: 'extra-user',
+      token: newToken
+    });
+  } catch (error) {
+    console.error("❌ activateExtraCode Error:", error);
+    res.status(500).json({ success: false, message: "Serverda xatolik." });
+  }
+};
+
 // --- EKSPORTLAR ---
 module.exports = {
   registerUser,
@@ -563,4 +646,5 @@ module.exports = {
   updateDeliveryVehicle,
   validateDeliveryCodeAction,
   getCouriersByRegion,
+  activateExtraCode,
 };
