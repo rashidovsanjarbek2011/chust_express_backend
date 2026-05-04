@@ -1,13 +1,11 @@
 import { fileURLToPath, URL } from "node:url";
-
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
-import vueDevTools from "vite-plugin-vue-devtools";
 
 // https://vite.dev/config/
 export default defineConfig({
   base: "./",
-  plugins: [vue() /* vueDevTools() */],
+  plugins: [vue()],
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
@@ -15,11 +13,10 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      // Rule: When the frontend requests anything starting with /api
       "/api": {
-        target: "http://localhost:5000", // Forward it to your Node.js backend
-        changeOrigin: true, // Needed for virtual hosting
-        secure: false, // Since it's local HTTP
+        target: "http://localhost:5000",
+        changeOrigin: true,
+        secure: false,
       },
       "/uploads": {
         target: "http://localhost:5000",
@@ -27,5 +24,11 @@ export default defineConfig({
         secure: false,
       },
     },
+  },
+  build: {
+    outDir: "dist",
+    assetsDir: "assets",
+    sourcemap: false,
+    minify: "terser",
   },
 });

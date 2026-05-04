@@ -7,10 +7,10 @@
         <h1
           class="text-4xl font-black text-green-500 tracking-tighter uppercase mb-2"
         >
-          Mahsulot Qo'shish
+          {{ $t('products.add_product_title') }}
         </h1>
         <p class="text-zinc-500">
-          Do'koningiz uchun yangi mahsulot ma'lumotlarini kiriting.
+          {{ $t('products.add_product_subtitle') }}
         </p>
       </div>
 
@@ -37,12 +37,12 @@
             <div>
               <label
                 class="block text-zinc-500 font-black uppercase text-[10px] tracking-widest mb-2"
-                >Mahsulot Nomi</label
+                >{{ $t('products.product_name') }}</label
               >
               <input
                 type="text"
                 v-model="productName"
-                placeholder="Masalan: Lavash"
+                :placeholder="$t('products.product_name_placeholder')"
                 class="w-full bg-zinc-900/50 border border-zinc-800 focus:border-green-500 rounded-xl p-4 text-white outline-none transition-all font-bold"
               />
             </div>
@@ -51,7 +51,7 @@
               <div>
                 <label
                   class="block text-zinc-500 font-black uppercase text-[10px] tracking-widest mb-2"
-                  >Narxi ($)</label
+                  >{{ $t('products.price') }}</label
                 >
                 <input
                   type="number"
@@ -64,7 +64,7 @@
               <div>
                 <label
                   class="block text-zinc-500 font-black uppercase text-[10px] tracking-widest mb-2"
-                  >Yetkazib berish narxi</label
+                  >{{ $t('products.delivery_price') }}</label
                 >
                 <input
                   type="number"
@@ -77,62 +77,63 @@
               <div>
                 <label
                   class="block text-zinc-500 font-black uppercase text-[10px] tracking-widest mb-2"
-                  >Birligi</label
+                  >{{ $t('products.unit') }}</label
                 >
                 <select
                   v-model="productUnit"
                   class="w-full bg-zinc-900/50 border border-zinc-800 focus:border-green-500 rounded-xl p-4 text-white outline-none transition-all font-bold appearance-none cursor-pointer"
                 >
-                  <option value="pcs" class="bg-zinc-950">Dona (pcs)</option>
-                  <option value="kg" class="bg-zinc-950">Kilogram (kg)</option>
-                  <option value="g" class="bg-zinc-950">Gram (g)</option>
-                  <option value="l" class="bg-zinc-950">Litr (l)</option>
-                  <option value="ml" class="bg-zinc-950">Millilitr (ml)</option>
-                  <option value="m" class="bg-zinc-950">Metr (m)</option>
-                  <option value="cm" class="bg-zinc-950">Santimetr (cm)</option>
-                  <option value="pack" class="bg-zinc-950">Paket/Pachka</option>
-                  <option value="box" class="bg-zinc-950">Quti (box)</option>
-                  <option value="portion" class="bg-zinc-950">Porsiya</option>
+                  <option value="pcs" class="bg-zinc-950">{{ $t('units.pcs') }}</option>
+                  <option value="kg" class="bg-zinc-950">{{ $t('units.kg') }}</option>
+                  <option value="g" class="bg-zinc-950">{{ $t('units.g') }}</option>
+                  <option value="l" class="bg-zinc-950">{{ $t('units.l') }}</option>
+                  <option value="ml" class="bg-zinc-950">{{ $t('units.ml') }}</option>
+                  <option value="m" class="bg-zinc-950">{{ $t('units.m') }}</option>
+                  <option value="cm" class="bg-zinc-950">{{ $t('units.cm') }}</option>
+                  <option value="pack" class="bg-zinc-950">{{ $t('units.pack') }}</option>
+                  <option value="box" class="bg-zinc-950">{{ $t('units.box') }}</option>
+                  <option value="portion" class="bg-zinc-950">{{ $t('units.portion') }}</option>
                 </select>
               </div>
               <div>
-<label for="category" class="block text-sm mb-[0.3em] font-bold text-gray-500">Category</label>
-    <select
-      id="category"
-      v-model="category"
-      class=" w-full bg-zinc-900/50 border border-zinc-800 focus:border-green-500 rounded-xl p-4 text-white outline-none transition-all font-bold appearance-none cursor-pointer"
-    >
-      <option value="" selected disabled class="block text-white w-full px-4 py-2  bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">Select a category</option>
-      <option value="electronics">Electronics</option>
-      <option class="bg-zinc-950" value="food">Food</option>
-      <option class="bg-zinc-950" value="clothing">Clothing</option>
-      <option class="bg-zinc-950" value="home-garden">Home & Garden</option>
-      <option class="bg-zinc-950" value="beauty-health">Beauty & Health</option>
-      <option class="bg-zinc-950" value="sports">Sports</option>
-      <option class="bg-zinc-950" value="toys-games">Toys & Games</option>
-      <option class="bg-zinc-950" value="books">Books</option>
-      <option class="bg-zinc-950" value="automotive">Automotive</option>
-      <option class="bg-zinc-950" value="pets">Pets</option>
-      <option class="bg-zinc-950" value="baby-products">Baby Products</option>
-      <option class="bg-zinc-950" value="office-supplies">Office Supplies</option>
-      <option class="bg-zinc-950" value="jewelry">Jewelry</option>
-      <option class="bg-zinc-950" value="music">Music</option>
-      <option class="bg-zinc-950" value="movies">Movies</option>
-      <option class="bg-zinc-950" value="tools">Tools</option>
-      <option class="bg-zinc-950" value="groceries">Groceries</option>
-      <option class="bg-zinc-950" value="furniture">Furniture</option>
-      <option class="bg-zinc-950" value="shoes">Shoes</option>
-      <option class="bg-zinc-950" value="bags-accessories">Bags & Accessories</option>
-    </select>
+                <label for="category" class="block text-sm mb-[0.3em] font-bold text-gray-500">{{ $t('products.category') }}</label>
+                <select
+                  id="category"
+                  v-model="category"
+                  class="w-full bg-zinc-900/50 border border-zinc-800 focus:border-green-500 rounded-xl p-4 text-white outline-none transition-all font-bold appearance-none cursor-pointer"
+                >
+                  <option value="" selected disabled class="block text-white w-full px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    {{ $t('products.select_category') }}
+                  </option>
+                  <option value="electronics">{{ $t('categories.electronics') }}</option>
+                  <option class="bg-zinc-950" value="food">{{ $t('categories.food') }}</option>
+                  <option class="bg-zinc-950" value="clothing">{{ $t('categories.clothing') }}</option>
+                  <option class="bg-zinc-950" value="home-garden">{{ $t('categories.home_garden') }}</option>
+                  <option class="bg-zinc-950" value="beauty-health">{{ $t('categories.beauty_health') }}</option>
+                  <option class="bg-zinc-950" value="sports">{{ $t('categories.sports') }}</option>
+                  <option class="bg-zinc-950" value="toys-games">{{ $t('categories.toys_games') }}</option>
+                  <option class="bg-zinc-950" value="books">{{ $t('categories.books') }}</option>
+                  <option class="bg-zinc-950" value="automotive">{{ $t('categories.automotive') }}</option>
+                  <option class="bg-zinc-950" value="pets">{{ $t('categories.pets') }}</option>
+                  <option class="bg-zinc-950" value="baby-products">{{ $t('categories.baby_products') }}</option>
+                  <option class="bg-zinc-950" value="office-supplies">{{ $t('categories.office_supplies') }}</option>
+                  <option class="bg-zinc-950" value="jewelry">{{ $t('categories.jewelry') }}</option>
+                  <option class="bg-zinc-950" value="music">{{ $t('categories.music') }}</option>
+                  <option class="bg-zinc-950" value="movies">{{ $t('categories.movies') }}</option>
+                  <option class="bg-zinc-950" value="tools">{{ $t('categories.tools') }}</option>
+                  <option class="bg-zinc-950" value="groceries">{{ $t('categories.groceries') }}</option>
+                  <option class="bg-zinc-950" value="furniture">{{ $t('categories.furniture') }}</option>
+                  <option class="bg-zinc-950" value="shoes">{{ $t('categories.shoes') }}</option>
+                  <option class="bg-zinc-950" value="bags-accessories">{{ $t('categories.bags_accessories') }}</option>
+                </select>
               </div>
-              
             </div>
 
             <div class="grid grid-cols-2 gap-4">
               <div v-if="productUnit === 'pcs'">
                 <label
                   class="block text-zinc-500 font-black uppercase text-[10px] tracking-widest mb-2"
-                  >Vazni (kg)</label
+                  >{{ $t('products.weight_kg') }}</label
                 >
                 <input
                   type="number"
@@ -145,7 +146,7 @@
               <div v-else>
                 <label
                   class="block text-zinc-500 font-black uppercase text-[10px] tracking-widest mb-2"
-                  >Zaxira (Soni / Vazni)</label
+                  >{{ $t('products.stock') }}</label
                 >
                 <input
                   type="number"
@@ -159,7 +160,7 @@
             <div v-if="productUnit === 'pcs'">
               <label
                 class="block text-zinc-500 font-black uppercase text-[10px] tracking-widest mb-2"
-                >Zaxira (Soni / Vazni)</label
+                >{{ $t('products.stock') }}</label
               >
               <input
                 type="number"
@@ -172,11 +173,11 @@
             <div>
               <label
                 class="block text-zinc-500 font-black uppercase text-[10px] tracking-widest mb-2"
-                >Tavsif</label
+                >{{ $t('products.description') }}</label
               >
               <textarea
                 v-model="description"
-                placeholder="Mahsulot haqida qisqacha..."
+                :placeholder="$t('products.description_placeholder')"
                 rows="4"
                 class="w-full bg-zinc-900/50 border border-zinc-800 focus:border-green-500 rounded-xl p-4 text-white outline-none transition-all font-bold resize-none"
               ></textarea>
@@ -188,99 +189,145 @@
             <div>
               <label
                 class="block text-zinc-500 font-black uppercase text-[10px] tracking-widest mb-2"
-                >Mahsulot Rasmi</label
+                >{{ $t('products.product_images') }}</label
               >
-              <div class="flex gap-4">
+
+              <!-- Multiple Images Grid -->
+              <div class="grid grid-cols-2 gap-4 mb-4">
                 <div
-                  class="relative flex-1 aspect-square rounded-2xl border-2 border-dashed border-zinc-800 hover:border-green-500/50 transition-all overflow-hidden flex flex-col items-center justify-center bg-zinc-900/30 group cursor-pointer"
-                  @click="$refs.fileInput.click()"
+                  v-for="(image, index) in productImages"
+                  :key="index"
+                  class="relative aspect-square rounded-xl border-2 border-zinc-800 overflow-hidden group cursor-pointer"
+                  @click="selectImageSlot(index)"
                 >
                   <img
-                    v-if="productImage"
-                    :src="productImage"
-                    class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    :src="image"
+                    class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
-                  <div v-else class="text-center p-6 text-zinc-600">
-                    <i class="bi bi-cloud-arrow-up text-5xl mb-2 block"></i>
-                    <span
-                      class="font-black uppercase text-[10px] tracking-widest block mb-2"
-                      >Rasm tanlang</span
-                    >
-                    <span
-                      class="text-[8px] text-zinc-700 font-bold uppercase tracking-widest"
-                      >yoki Ctrl+V bilan qo'ying</span
-                    >
-                  </div>
+
+                  <!-- Remove button -->
+                  <button
+                    @click.stop="removeImage(index)"
+                    class="absolute top-2 right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <i class="bi bi-x text-xs"></i>
+                  </button>
 
                   <!-- Overlay for hover -->
                   <div
                     class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
                   >
                     <span
-                      class="px-4 py-2 bg-white text-black font-black uppercase text-[10px] rounded-full shadow-xl"
-                      >O'zgartirish</span
+                      class="px-3 py-1 bg-white text-black font-black uppercase text-[8px] rounded-full shadow-xl"
+                      >{{ $t('products.change') }}</span
                     >
                   </div>
                 </div>
 
+                <!-- Add new image slot -->
                 <div
-                  @click="openCamera"
-                  class="w-20 aspect-square rounded-2xl border-2 border-zinc-800 hover:border-green-500/50 hover:bg-green-500/5 transition-all flex flex-col items-center justify-center cursor-pointer group"
+                  v-if="productImages.length < 5"
+                  class="relative aspect-square rounded-xl border-2 border-dashed border-zinc-800 hover:border-green-500/50 transition-all overflow-hidden flex flex-col items-center justify-center bg-zinc-900/30 group cursor-pointer"
+                  @click="selectImageSlot(productImages.length)"
                 >
-                  <i
-                    class="bi bi-camera text-2xl text-zinc-600 group-hover:text-green-500 transition-colors"
-                  ></i>
-                  <span
-                    class="text-[8px] font-black uppercase tracking-widest text-zinc-600 group-hover:text-green-500 mt-1"
-                    >Kamera</span
-                  >
+                  <div class="text-center p-4 text-zinc-600">
+                    <i class="bi bi-plus-lg text-3xl mb-2 block"></i>
+                    <span
+                      class="font-black uppercase text-[8px] tracking-widest block"
+                      >{{ $t('products.add_image') }}</span
+                    >
+                  </div>
                 </div>
               </div>
+
+              <!-- Hidden file input -->
               <input
                 type="file"
                 ref="fileInput"
                 hidden
                 accept="image/*"
-                @change="onFileSelected"
+                multiple
+                @change="onFilesSelected"
               />
+
+              <!-- Camera button -->
+              <div class="flex gap-4 mb-4">
+                <button
+                  @click="openCamera"
+                  class="flex items-center justify-center gap-2 px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 rounded-lg transition-all text-sm"
+                >
+                  <i class="bi bi-camera"></i>
+                  {{ $t('products.camera') }}
+                </button>
+              </div>
+
               <p
-                class="mt-4 text-[10px] text-zinc-600 font-bold uppercase tracking-widest text-center italic"
+                class="text-[10px] text-zinc-600 font-bold uppercase tracking-widest text-center italic"
               >
-                JPG, PNG yoki WEBP mavjud
+                {{ $t('products.image_format_hint') }}
               </p>
 
-              <!-- URL Input -->
+              <!-- URL Inputs - Dynamic list -->
               <div class="mt-6 border-t border-zinc-800 pt-6">
                 <label
-                  class="block text-zinc-500 font-black uppercase text-[10px] tracking-widest mb-2"
-                  >Yoki Rasm URL Manzili</label
+                  class="block text-zinc-500 font-black uppercase text-[10px] tracking-widest mb-4"
+                  >{{ $t('products.image_urls') }}</label
                 >
-                <div class="relative">
-                  <input
-                    type="text"
-                    v-model="imageUrlInput"
-                    @input="updateImageFromUrl"
-                    placeholder="https://example.com/image.jpg"
-                    class="w-full bg-zinc-900/50 border border-zinc-800 focus:border-green-500 rounded-xl p-4 pl-10 text-white outline-none transition-all font-bold text-sm"
-                  />
-                  <i
-                    class="bi bi-link-45deg absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-xl"
-                  ></i>
+
+                <!-- Dynamic URL input fields -->
+                <div class="space-y-3">
+                  <div
+                    v-for="(urlInput, index) in imageUrlInputs"
+                    :key="index"
+                    class="relative"
+                  >
+                    <input
+                      type="text"
+                      v-model="imageUrlInputs[index]"
+                      @input="onUrlInput(index)"
+                      :placeholder="$t('products.image_url_placeholder', { n: index + 1 })"
+                      class="w-full bg-zinc-900/50 border border-zinc-800 focus:border-green-500 rounded-xl p-4 pl-10 pr-10 text-white outline-none transition-all font-bold text-sm"
+                    />
+                    <i
+                      class="bi bi-link-45deg absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-xl"
+                    ></i>
+
+                    <!-- Remove button for additional inputs -->
+                    <button
+                      v-if="imageUrlInputs.length > 1"
+                      @click="removeUrlInput(index)"
+                      class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-red-500 transition-colors"
+                      :title="$t('products.remove_url_field')"
+                    >
+                      <i class="bi bi-x-circle text-lg"></i>
+                    </button>
+                  </div>
                 </div>
+
+                <!-- Add another URL input button -->
+                <button
+                  v-if="imageUrlInputs.length < 5"
+                  @click="addUrlInput"
+                  class="mt-3 flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-all text-sm"
+                >
+                  <i class="bi bi-plus-circle"></i>
+                  {{ $t('products.add_more_urls') }}
+                </button>
+
                 <label
                   class="block mt-[1em] text-zinc-500 font-black uppercase text-[10px] tracking-widest mb-2"
-                  >Do'konning aniq manzili</label
+                  >{{ $t('products.shop_address') }}</label
                 >
                 <div class="relative">
                   <input
                     type="text"
                     v-model="shopAddress"
                     @input="updateShopAddress"
-                    placeholder="viloyat: ... shahar: ... ko'cha: ... uy: ..."
+                    :placeholder="$t('products.shop_address_placeholder')"
                     class="w-full bg-zinc-900/50 border border-zinc-800 focus:border-green-500 rounded-xl p-4 pl-10 text-white outline-none transition-all font-bold text-sm"
                   />
                   <i
-                    class="bi bi-link-45deg absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-xl"
+                    class="bi bi-geo-alt absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-xl"
                   ></i>
                 </div>
               </div>
@@ -306,7 +353,7 @@
               <h3
                 class="text-lg font-black uppercase tracking-widest text-white"
               >
-                Rasmga Olish
+                {{ $t('products.take_photo') }}
               </h3>
               <button
                 @click="closeCamera"
@@ -346,8 +393,8 @@
             class="w-full py-5 bg-green-600 hover:bg-green-700 disabled:bg-zinc-800 disabled:text-zinc-600 text-white font-black uppercase tracking-[0.2em] text-sm rounded-2xl transition-all shadow-xl shadow-green-500/20 flex items-center justify-center gap-3"
           >
             <i v-if="!loading" class="bi bi-plus-lg text-lg"></i>
-            <span v-if="loading" class="animate-pulse">Yuborilmoqda...</span>
-            <span v-else>Saqlash</span>
+            <span v-if="loading" class="animate-pulse">{{ $t('products.saving') }}</span>
+            <span v-else>{{ $t('products.save') }}</span>
           </button>
         </div>
       </div>
@@ -362,7 +409,7 @@ export default {
   data() {
     return {
       productName: "",
-      productImage: "",
+      productImages: [],
       productPrice: "",
       deliveryPrice: "",
       productStock: "",
@@ -377,30 +424,96 @@ export default {
       loading: false,
       showCamera: false,
       stream: null,
-      imageUrlInput: "",
+      imageUrlInputs: [""],
+      selectedImageIndex: null,
     };
   },
   mounted() {
-    // Global paste event listener for the entire page
     window.addEventListener("paste", this.handlePaste);
   },
   methods: {
-    async onFileSelected(event) {
-      const file = event.target.files[0];
-      if (!file) return;
+    selectImageSlot(index) {
+      this.selectedImageIndex = index;
+      this.$refs.fileInput.click();
+    },
 
-      if (file.size > 2 * 1024 * 1024) {
-        // 2MB Limit
-        this.error = "Rasm hajmi 2MB dan oshmasligi kerak.";
+    async onFilesSelected(event) {
+      const files = Array.from(event.target.files);
+      if (!files.length) return;
+
+      for (const file of files) {
+        if (file.size > 2 * 1024 * 1024) {
+          this.error = this.$t('products.image_size_error');
+          return;
+        }
+      }
+
+      this.error = null;
+
+      for (const file of files) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          if (this.selectedImageIndex !== null) {
+            this.productImages[this.selectedImageIndex] = e.target.result;
+            this.selectedImageIndex = null;
+          } else {
+            if (this.productImages.length < 5) {
+              this.productImages.push(e.target.result);
+            }
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+
+      event.target.value = '';
+    },
+
+    removeImage(index) {
+      this.productImages.splice(index, 1);
+    },
+
+    addUrlInput() {
+      if (this.imageUrlInputs.length < 5) {
+        this.imageUrlInputs.push("");
+      }
+    },
+
+    removeUrlInput(index) {
+      if (this.imageUrlInputs.length > 1) {
+        this.imageUrlInputs.splice(index, 1);
+        if (this.productImages[index]) {
+          this.productImages.splice(index, 1);
+        }
+      }
+    },
+
+    onUrlInput(index) {
+      const url = this.imageUrlInputs[index]?.trim();
+
+      if (!url) {
+        if (this.productImages[index]) {
+          this.productImages.splice(index, 1);
+        }
+        return;
+      }
+
+      const isValidImageUrl = /^(https?:\/\/|data:)/i.test(url);
+      if (!isValidImageUrl) {
+        this.error = this.$t('products.invalid_url_error');
         return;
       }
 
       this.error = null;
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        this.productImage = e.target.result;
-      };
-      reader.readAsDataURL(file);
+
+      if (this.productImages.length <= index) {
+        this.productImages.push(url);
+      } else {
+        this.productImages[index] = url;
+      }
+
+      if (index === this.imageUrlInputs.length - 1 && this.imageUrlInputs.length < 5) {
+        this.addUrlInput();
+      }
     },
 
     async openCamera() {
@@ -408,7 +521,7 @@ export default {
       this.showCamera = true;
       try {
         this.stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" }, // Use back camera if available
+          video: { facingMode: "environment" },
         });
         this.$nextTick(() => {
           if (this.$refs.video) {
@@ -417,7 +530,7 @@ export default {
         });
       } catch (err) {
         console.error("Camera error:", err);
-        this.error = "Kameraga ruxsat berilmadi yoki kamera topilmadi.";
+        this.error = this.$t('products.camera_permission_error');
         this.showCamera = false;
       }
     },
@@ -432,7 +545,17 @@ export default {
       canvas.height = video.videoHeight;
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      this.productImage = canvas.toDataURL("image/webp", 0.8);
+      const imageData = canvas.toDataURL("image/webp", 0.8);
+
+      if (this.selectedImageIndex !== null) {
+        this.productImages[this.selectedImageIndex] = imageData;
+        this.selectedImageIndex = null;
+      } else {
+        if (this.productImages.length < 5) {
+          this.productImages.push(imageData);
+        }
+      }
+
       this.closeCamera();
     },
 
@@ -444,19 +567,38 @@ export default {
       this.showCamera = false;
     },
 
+    onCameraCapture(imageData) {
+      if (this.selectedImageIndex !== null && this.selectedImageIndex < 5) {
+        this.productImages[this.selectedImageIndex] = imageData;
+        this.selectedImageIndex = null;
+      } else if (this.productImages.length < 5) {
+        this.productImages.push(imageData);
+      }
+    },
+
     async productSaver() {
       this.error = null;
       this.success = null;
 
       if (
         !this.productName ||
-        !this.productImage ||
+        this.productImages.length === 0 ||
         !this.productPrice ||
         !this.productStock ||
         !this.shopAddress ||
         !this.category
       ) {
-        this.error = "Iltimos barcha maydonlarni to‘ldiring.";
+        this.error = this.$t('products.fill_all_fields_error');
+        return;
+      }
+
+      const invalidImage = this.productImages.some((img) => {
+        if (!img || !img.toString().trim()) return true;
+        return !/^(https?:\/\/|data:)/i.test(img);
+      });
+
+      if (invalidImage) {
+        this.error = this.$t('products.invalid_image_format_error');
         return;
       }
 
@@ -465,7 +607,6 @@ export default {
 
         const token = localStorage.getItem("userToken");
 
-        // Try to capture and update seller location automatically
         if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(async (position) => {
             const { latitude, longitude } = position.coords;
@@ -484,7 +625,7 @@ export default {
         }
 
         if (!token) {
-          this.error = "Token topilmadi. Iltimos qayta login qiling.";
+          this.error = this.$t('products.token_not_found_error');
           return;
         }
 
@@ -492,17 +633,16 @@ export default {
           "/api/products",
           {
             name: this.productName,
-            image: this.productImage, // Base64 or URL
+            images: this.productImages,
             description: this.description,
             price: parseFloat(this.productPrice),
             deliveryPrice: parseFloat(this.deliveryPrice) || 0,
-            stock: parseInt(this.productStock),
-            weight:
-              this.productUnit === "pcs" ? parseFloat(this.productWeight) : 1.0,
+            stock: parseInt(this.productStock, 10) || 0,
+            weight: this.productUnit === "pcs" ? parseFloat(this.productWeight) : 1.0,
             unit: this.productUnit,
             currency: this.productCurrency,
             shopAddress: this.shopAddress,
-            category: String(this.category),
+            category: this.category ? String(this.category) : "Not Selected",
           },
           {
             headers: {
@@ -513,11 +653,10 @@ export default {
         );
 
         if (response.data.success) {
-          this.success = "Mahsulot muvaffaqiyatli qo‘shildi!";
-          // Formani tozalash
+          this.success = this.$t('products.product_added_success');
           this.productName = "";
-          this.productImage = "";
-          this.imageUrlInput = "";
+          this.productImages = [];
+          this.imageUrlInputs = [""];
           this.description = "";
           this.productPrice = "";
           this.deliveryPrice = "";
@@ -529,16 +668,16 @@ export default {
         }
       } catch (err) {
         console.error("Xatolik:", err.response?.data || err.message);
-        this.error = err.response?.data?.message || "Xatolik yuz berdi.";
+        this.error = err.response?.data?.message || this.$t('products.general_error');
       } finally {
         this.loading = false;
       }
     },
+
     updateImageFromUrl() {
-      if (this.imageUrlInput) {
-        this.productImage = this.imageUrlInput;
-      }
+      // Handled by onUrlInput
     },
+
     handlePaste(event) {
       const items = event.clipboardData?.items;
       if (!items) return;
@@ -546,26 +685,28 @@ export default {
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
 
-        // Check if clipboard contains an image
         if (item.type.indexOf("image") !== -1) {
           event.preventDefault();
           const file = item.getAsFile();
           if (!file) continue;
 
-          // Check file size (2MB limit)
           if (file.size > 2 * 1024 * 1024) {
-            this.error = "Rasm hajmi 2MB dan oshmasligi kerak.";
+            this.error = this.$t('products.image_size_error');
             setTimeout(() => (this.error = null), 3000);
             return;
           }
 
           this.error = null;
-          // Convert to base64
           const reader = new FileReader();
           reader.onload = (e) => {
-            this.productImage = e.target.result;
-            this.success = "Rasm muvaffaqiyatli qo'shildi!";
-            setTimeout(() => (this.success = null), 2000);
+            if (this.productImages.length < 5) {
+              this.productImages.push(e.target.result);
+              this.success = this.$t('products.image_added_success');
+              setTimeout(() => (this.success = null), 2000);
+            } else {
+              this.error = this.$t('products.max_images_error');
+              setTimeout(() => (this.error = null), 3000);
+            }
           };
           reader.readAsDataURL(file);
           break;
@@ -575,7 +716,6 @@ export default {
   },
   beforeUnmount() {
     this.closeCamera();
-    // Remove paste event listener
     window.removeEventListener("paste", this.handlePaste);
   },
 };

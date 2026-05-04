@@ -28,12 +28,7 @@
               class="w-5 h-5 accent-blue-500"
             />
           </label>
-          <router-link
-            to="/extra-panel"
-            class="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white font-black uppercase tracking-widest text-xs rounded-lg transition-all"
-          >
-            🎚️ Resources
-          </router-link>
+          
           <button @click="logout" class="btn-danger">Logout</button>
         </div>
       </div>

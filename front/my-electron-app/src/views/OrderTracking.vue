@@ -1,5 +1,5 @@
 <template>
-  <div class="order-tracking pt-20 min-h-screen bg-zinc-950 text-white p-6 md:p-12">
+  <div class="order-tracking pt-20 min-h-screen bg-transparent text-white p-6 md:p-12" >
     <div class="max-w-4xl mx-auto space-y-8">
       <!-- Header -->
       <div class="flex justify-between items-center">
@@ -221,8 +221,9 @@ export default {
     this.fetchOrder();
 
     // Socket.io connection
-    const backendUrl = import.meta.env.VITE_API_URL || "https://chust-express-backend.onrender.com/api";
-    const socketUrl = backendUrl.replace(/\/api$/, "");
+    const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+    let socketUrl = backendUrl.replace(/\/api$/, "");
+    if (socketUrl === "") socketUrl = "http://localhost:5000";
     this.socket = io(socketUrl);
 
     this.socket.on("orderUpdated", (updatedOrder) => {

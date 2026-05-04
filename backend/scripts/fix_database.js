@@ -2,9 +2,16 @@
 // Run this script locally to fix both delivery types and notes column
 
 const { Client } = require('pg');
+require('dotenv').config();
 
-// Replace with your Render database URL
-const DATABASE_URL = "postgresql://admin_chust_express:5n4lBbdyYcVzk9Tk1eZZ1EXrJqFVmzt8@dpg-d6ipjgpaae7s73cllpig-a.frankfurt-postgres.render.com/chust_express_web";
+// Use environment variable for database URL
+const DATABASE_URL = process.env.DATABASE_URL;
+
+if (!DATABASE_URL) {
+  console.error('❌ DATABASE_URL environment variable is not set!');
+  console.error('Please set DATABASE_URL in your .env file');
+  process.exit(1);
+}
 
 const client = new Client({
   connectionString: DATABASE_URL,

@@ -53,14 +53,7 @@
           </div>
         </div>
 
-        <!-- Extra Button - Always Visible -->
-        <button
-          @click="openExtra"
-          class="flex items-center justify-center text-lg h-[40px] w-[40px] text-orange-400 border-[2px] border-orange-500/30 rounded-md hover:bg-orange-500/10 hover:border-orange-500 transition flex-shrink-0"
-          title="Resource Panel"
-        >
-          <i class="bi bi-sliders"></i>
-        </button>
+        <!-- Extra Button - Role-based visibility -->
 
         <!-- Cart Section -->
         <router-link to="/cart" class="relative group flex-shrink-0">
@@ -164,7 +157,8 @@ export default {
   },
   watch: {
     "$route.query.search"(newVal) {
-      this.searchQuery = newVal || "";
+      // ✅ Defensive: ensure newVal is a string
+      this.searchQuery = (typeof newVal === 'string' ? newVal : '') || "";
     },
   },
   computed: {
@@ -176,7 +170,7 @@ export default {
       return (
         this.user.name ||
         this.user.username ||
-        this.user.email.split("@")[0] ||
+        this.user.email ? this.user.email.split('@')[0] : '' ||
         this.user.email
       );
     },
@@ -194,7 +188,9 @@ export default {
   mounted() {
     this.loadUser();
     this.updateCartCount();
-    this.searchQuery = this.$route.query.search || "";
+    // ✅ Defensive: ensure route query search is string
+    const searchParam = this.$route.query.search;
+    this.searchQuery = (typeof searchParam === 'string' ? searchParam : '') || "";
     window.addEventListener("userLoggedIn", this.loadUser);
     window.addEventListener("storage", this.handleStorageChange);
     window.addEventListener("cartUpdated", this.updateCartCount);
@@ -223,11 +219,22 @@ export default {
       localStorage.setItem("lang", lang);
       this.showLangList = false;
     },
-    // Real-time debounced search
+    // Real-time debounced search with defensive sanitization
     onSearchInput() {
       clearTimeout(this.searchDebounceTimer);
       this.searchDebounceTimer = setTimeout(() => {
-        const query = this.searchQuery.trim();
+        // ✅ Extract string value safely - in case v-model accidentally holds an event
+        let query = '';
+        if (typeof this.searchQuery === 'string') {
+          query = this.searchQuery.trim();
+        } else if (this.searchQuery && typeof this.searchQuery === 'object' && this.searchQuery.target) {
+          // If somehow an event object got in, extract its value
+          query = this.searchQuery.target.value?.trim() || '';
+          // Also fix the v-model binding to prevent further issues
+          this.searchQuery = query;
+        }
+        
+        // ✅ Only push if we have a valid string (or empty)
         if (this.$route.path !== "/") {
           this.$router.push({ path: "/", query: query ? { search: query } : {} });
         } else {

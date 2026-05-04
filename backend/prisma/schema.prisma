@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -203,7 +203,7 @@ model Territory {
   name        String
   zoneType    String?
   description String?
-  geometry    String?  @db.Text
+  geometry    String?
   userId      Int?     @default(1) // Link to owner
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -224,7 +224,7 @@ model Worker {
   description   String?
   district      String?
   rating        Float    @default(0)
-  photos        Json?    // Array of image URLs
+  photos        String?    // Array of image URLs as JSON string
   birthDate     DateTime?
   pricingModel  String   @default("Hourly")
   price         Float    @default(0)
@@ -273,7 +273,7 @@ model ConstructionEquipment {
   description   String?
   district      String?
   rating        Float    @default(0)
-  photos        Json?
+  photos        String?
   productionYear Int?
   pricingModel  String   @default("Hourly")
   price         Float    @default(0)
@@ -290,12 +290,13 @@ model DeliveryVehicle {
   name          String
   capacity      Float?
   plateNum      String?  @unique
+  phone         String?
   hourlyRate    Float?   @default(0)
   pricePerKm    Float?   @default(0)
   description   String?
   district      String?
   rating        Float    @default(0)
-  photos        Json?
+  photos        String?
   productionYear Int?
   pricingModel  String   @default("Hourly")
   price         Float    @default(0)
@@ -337,7 +338,7 @@ model RentalService {
   description   String?
   district      String?
   rating        Float    @default(0)
-  photos        Json?
+  photos        String?
   pricingModel  String   @default("Daily")
   price         Float    @default(0)
   status        String   @default("Available")

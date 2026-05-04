@@ -155,7 +155,13 @@ export default {
         this.successMessage = "Login successful! Redirecting...";
 
         setTimeout(() => {
-          this.$router.push("/dashboard");
+          if (userData.role === "manager") {
+            this.$router.push("/dashboard");
+          } else if (userData.role === "extra-user") {
+            this.$router.push("/extra-panel");
+          } else {
+            this.$router.push("/login");
+          }
         }, 500);
       } catch (err) {
         this.password = "";
@@ -206,9 +212,12 @@ export default {
       try {
         const user = JSON.parse(userStr);
 
+        axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+
         if (user.role === "manager") {
-          axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
           this.$router.push("/dashboard");
+        } else if (user.role === "extra-user") {
+          this.$router.push("/extra-panel");
         } else {
           localStorage.clear();
         }

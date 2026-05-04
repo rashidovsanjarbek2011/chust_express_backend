@@ -7,10 +7,10 @@
         <h1
           class="text-4xl font-black text-green-500 tracking-tighter uppercase mb-2"
         >
-          Ro'yxatdan o'tish
+          {{$t('register')}}
         </h1>
         <p class="text-zinc-500 text-sm">
-          Yangi hisob yarating va mazali taomlar dunyosiga qo'shiling.
+          {{$t('register_welcome')}}
         </p>
       </div>
 
@@ -34,12 +34,12 @@
         <div>
           <label
             class="block text-zinc-500 font-black uppercase text-[10px] tracking-widest mb-2"
-            >Foydalanuvchi Nomi</label
+            >{{$t('username')}}</label
           >
           <input
             v-model="formData.username"
             type="text"
-            placeholder="Username"
+            :placeholder="$t('username_placeholder')"
             class="w-full bg-zinc-900/50 border border-zinc-800 focus:border-green-500 rounded-xl p-4 text-white outline-none transition-all font-bold placeholder:text-zinc-700"
           />
         </div>
@@ -47,12 +47,12 @@
         <div>
           <label
             class="block text-zinc-500 font-black uppercase text-[10px] tracking-widest mb-2"
-            >E-pochta</label
+            >{{$t('email')}}</label
           >
           <input
             v-model="formData.email"
             type="email"
-            placeholder="email@example.com"
+            :placeholder="$t('email_placeholder')"
             class="w-full bg-zinc-900/50 border border-zinc-800 focus:border-green-500 rounded-xl p-4 text-white outline-none transition-all font-bold placeholder:text-zinc-700"
           />
         </div>
@@ -60,12 +60,12 @@
         <div>
           <label
             class="block text-zinc-500 font-black uppercase text-[10px] tracking-widest mb-2"
-            >Telefon Raqami</label
+            >{{$t('phone_number')}}</label
           >
           <input
             v-model="formData.phoneNumber"
             type="tel"
-            placeholder="+998 90 123 45 67"
+            :placeholder="$t('phone_number_placeholder')"
             class="w-full bg-zinc-900/50 border border-zinc-800 focus:border-green-500 rounded-xl p-4 text-white outline-none transition-all font-bold placeholder:text-zinc-700"
           />
         </div>
@@ -73,12 +73,12 @@
         <div>
            <label
             class="block text-zinc-500 font-black uppercase text-[10px] tracking-widest mb-2"
-            >Aniq Uy Manzilingiz</label
+            >{{$t('address')}}</label
           >
           <input
             v-model="formData.address"
             type="text"
-            placeholder="Toshkent sh., Chilonzor tumani, 5-kvartal, 20-uy"
+            :placeholder="$t('address_placeholder')"
             class="w-full bg-zinc-900/50 border border-zinc-800 focus:border-green-500 rounded-xl p-4 text-white outline-none transition-all font-bold placeholder:text-zinc-700"
           />
         </div>
@@ -86,12 +86,12 @@
         <div>
           <label
             class="block text-zinc-500 font-black uppercase text-[10px] tracking-widest mb-2"
-            >Karta Raqami</label
+            >{{$t('card_number')}}</label
           >
           <input
             v-model="formData.cardNumber"
             type="text"
-            placeholder="8600 0000 0000 0000"
+            :placeholder="$t('card_number_placeholder')"
             maxlength="19"
             @input="formatCardNumber"
             class="w-full bg-zinc-900/50 border border-zinc-800 focus:border-green-500 rounded-xl p-4 text-white outline-none transition-all font-bold placeholder:text-zinc-700"
@@ -102,13 +102,13 @@
           <div>
             <label
               class="block text-zinc-500 font-black uppercase text-[10px] tracking-widest mb-2"
-              >Parol</label
+              >{{$t('password')}}</label
             >
             <div class="relative">
               <input
                 v-model="formData.password"
                 :type="slashed ? 'password' : 'text'"
-                placeholder="••••••••"
+                :placeholder="$t('password_placeholder')"
                 class="w-full bg-zinc-900/50 border border-zinc-800 focus:border-green-500 rounded-xl p-4 text-white outline-none transition-all font-bold placeholder:text-zinc-700 text-sm"
               />
               <button
@@ -126,13 +126,13 @@
           <div>
             <label
               class="block text-zinc-500 font-black uppercase text-[10px] tracking-widest mb-2"
-              >Tasdiqlang</label
+              >{{$t('confirm')}}</label
             >
             <div class="relative">
               <input
                 v-model="formData.confirmPassword"
                 :type="slashed ? 'password' : 'text'"
-                placeholder="••••••••"
+                :placeholder="$t('password_placeholder')"
                 class="w-full bg-zinc-900/50 border border-zinc-800 focus:border-green-500 rounded-xl p-4 text-white outline-none transition-all font-bold placeholder:text-zinc-700 text-sm"
               />
             </div>
@@ -144,18 +144,18 @@
           :disabled="loading"
           class="w-full py-5 bg-green-600 hover:bg-green-700 disabled:bg-zinc-800 disabled:text-zinc-600 text-white font-black uppercase tracking-[0.2em] text-xs rounded-2xl transition-all shadow-xl shadow-green-500/20 mt-4"
         >
-          <span v-if="loading" class="animate-pulse">Yuborilmoqda...</span>
-          <span v-else>Ro'yxatdan o'tish</span>
+          <span v-if="loading" class="animate-pulse">{{$t('sending')}}...</span>
+          <span v-else>{{$t('register')}}</span>
         </button>
 
         <p
           class="text-center text-zinc-500 text-xs font-bold uppercase tracking-widest mt-8"
         >
-          Allaqachon ro'yxatdan o'tgansizmi?
+          {{$t('already_registered')}}
           <router-link
             :to="{ name: 'login' }"
             class="text-green-500 hover:text-green-400 transition-colors ml-1"
-            >Kirish</router-link
+            >{{$t('login')}}</router-link
           >
         </p>
       </div>
@@ -168,6 +168,11 @@ import axios from "axios";
 
 export default {
   name: "Register",
+  watch: {
+    '$i18n.locale'() {
+      this.$forceUpdate();
+    }
+  },
   data() {
     return {
       slashed: true,
@@ -211,18 +216,18 @@ export default {
         !phoneNumber
       ) {
         this.error =
-          "Iltimos, barcha maydonlarni, jumladan telefon raqamini ham to'ldiring.";
+          this.$t('error_fill_all_fields');
         return;
       }
 
-      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;  // Actually this might be fine in JS;
       if (!emailPattern.test(email)) {
-        this.error = "Email manzilingiz noto‘g‘ri.";
+        this.error = this.$t('error_invalid_email');
         return;
       }
 
       if (password !== confirmPassword) {
-        this.error = "Parollar mos emas.";
+        this.error = this.$t('error_passwords_do_not_match');
         return;
       }
 

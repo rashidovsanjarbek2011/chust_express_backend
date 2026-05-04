@@ -5,30 +5,91 @@
  * 2. Absolute URLs (http/https)
  * 3. Data URIs (base64)
  * 4. Relative paths (appends backend URL)
+ * 5. JSON arrays of images (returns first image or all images)
  *
  * @param {string} imagePath - The image path or string from the database
- * @returns {string} The usable src string for an <img> tag
+ * @param {boolean} returnAll - If true, returns array of all images; if false, returns first image
+ * @returns {string|string[]} The usable src string(s) for an <img> tag
  */
-export function getProductImage(imagePath) {
+export function getProductImage(imagePath, returnAll = false) {
   // 1. Handle null/undefined/empty
   if (!imagePath) {
-    return "https://placehold.co/400x300?text=No+Image";
+    return returnAll ? ["https://placehold.co/400x300?text=No+Image"] : "https://placehold.co/400x300?text=No+Image";
   }
 
-  // 2. Handle absolute URLs (e.g. from external APIs)
-  if (imagePath.startsWith("http") || imagePath.startsWith("https")) {
-    return imagePath;
+  let images = [];
+
+  // 2. Accept arrays directly, JSON arrays, or string values
+  if (Array.isArray(imagePath)) {
+    images = imagePath.filter(img => img && String(img).trim()).map(String);
+  } else {
+    try {
+      const parsed = JSON.parse(imagePath);
+      if (Array.isArray(parsed)) {
+        images = parsed.filter(img => img && String(img).trim()).map(String);
+      } else if (typeof parsed === 'string') {
+        images = [parsed.trim()];
+      } else {
+        images = [String(imagePath).trim()];
+      }
+    } catch (e) {
+      // Not JSON, treat as single image
+      images = [String(imagePath).trim()];
+    }
   }
 
-  // 3. Handle Base64 Data URIs
-  if (imagePath.startsWith("data:")) {
-    return imagePath;
+  // 3. Process each image URL
+  const processedImages = images.map(img => {
+    const normalized = String(img || "").trim();
+    if (!normalized) return null;
+
+    // Handle Base64 Data URIs
+    if (normalized.startsWith("data:")) {
+      return normalized;
+    }
+
+    // Handle absolute URLs
+    if (normalized.startsWith("http://") || normalized.startsWith("https://")) {
+      return normalized;
+    }
+
+    // If it's a non-URL value, we treat it as missing and avoid broken image
+    // (e.g. legacy strings like "satellite" as placeholder text)
+    if (!normalized.includes(".")) {
+      return "https://placehold.co/400x300?text=No+Image";
+    }
+
+    const envUrl = import.meta.env.VITE_API_URL;
+    let API_BASE_URL = envUrl ? (envUrl.endsWith('/api') ? envUrl.slice(0, -4) : envUrl) : "http://localhost:5000";
+    if (API_BASE_URL === "") API_BASE_URL = "http://localhost:5000";
+
+    // Ensure we don't end up with double slashes if img starts with /
+    const cleanPath = normalized.startsWith("/") ? normalized : `/${normalized}`;
+    return `${API_BASE_URL}${cleanPath}`;
+  });
+
+  // 4. Return all images or just the first one
+  if (returnAll) {
+    return processedImages.length > 0 ? processedImages : ["https://placehold.co/400x300?text=No+Image"];
+  } else {
+    return processedImages.length > 0 ? processedImages[0] : "https://placehold.co/400x300?text=No+Image";
   }
+}
 
-  const envUrl = import.meta.env.VITE_API_URL;
-  const API_BASE_URL = envUrl ? (envUrl.endsWith('/api') ? envUrl.slice(0, -4) : envUrl) : "https://chust-express-backend.onrender.com";
+/**
+ * Get the first product image (backward compatibility)
+ * @param {string} imagePath - The image path or string from the database
+ * @returns {string} The first usable image src
+ */
+export function getFirstProductImage(imagePath) {
+  return getProductImage(imagePath, false);
+}
 
-  // Ensure we don't end up with double slashes if imagePath starts with /
-  const cleanPath = imagePath.startsWith("/") ? imagePath : `/${imagePath}`;
-  return `${API_BASE_URL}${cleanPath}`;
+/**
+ * Get all product images
+ * @param {string} imagePath - The image path or string from the database
+ * @returns {string[]} Array of all usable image sources
+ */
+export function getAllProductImages(imagePath) {
+  return getProductImage(imagePath, true);
 }

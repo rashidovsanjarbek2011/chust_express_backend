@@ -14,6 +14,7 @@ const {
   updateDeliveryVehicle,
   validateDeliveryCodeAction,
   getCouriersByRegion,
+  activateExtraCode,
 } = require("../controllers/authController");
 
 // Middleware
@@ -44,6 +45,7 @@ router.get("/couriers-by-region/:region", getCouriersByRegion);
 router.get("/me", protect, getMe);
 router.put("/profile", protect, updateProfile);
 router.put("/delivery/vehicle", protect, updateDeliveryVehicle);
+router.post("/activate-extra", protect, activateExtraCode);
 
 // ======================
 // 🛠️ Admin routes

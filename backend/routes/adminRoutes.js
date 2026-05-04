@@ -25,7 +25,7 @@ router.delete("/users/:id", requireRole("administrator"), deleteUser);
 // Order management - only admins
 router.get(
   "/orders",
-  authorize(["administrator", "shop_owner", "shop_worker"]),
+  authorize(["administrator", "manager"]),
   getAllOrders,
 );
 

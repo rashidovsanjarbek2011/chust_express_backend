@@ -1,6 +1,6 @@
 <template>
   <div
-    class="delivery-lobby pt-20 min-h-screen bg-zinc-950 text-white p-6 md:p-12"
+    class="delivery-lobby pt-20 min-h-screen bg-transparent text-white p-6 md:p-12" 
   >
     <div class="max-w-6xl mx-auto">
       <!-- Header -->
@@ -86,7 +86,7 @@
                   v-model="editData.workingRegion" 
                   type="text" 
                   placeholder="Masalan: Chilonzor..." 
-                  class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-sm font-bold focus:border-green-500 outline-none transition-all"
+                  class="w-full bg-transparent border border-zinc-800 rounded-xl px-4 py-3 text-sm font-bold focus:border-green-500 outline-none transition-all" 
                 />
               </div>
               <div class="space-y-1">
@@ -95,7 +95,7 @@
                   v-model="editData.deliveryPrice" 
                   type="number" 
                   placeholder="Masalan: 15000" 
-                  class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-sm font-bold focus:border-green-500 outline-none transition-all"
+                  class="w-full bg-transparent border border-zinc-800 rounded-xl px-4 py-3 text-sm font-bold focus:border-green-500 outline-none transition-all" 
                 />
               </div>
             </div>
@@ -317,8 +317,9 @@ export default {
     this.loadUser();
 
     // Socket.io connection
-    const backendUrl = import.meta.env.VITE_API_URL || "https://chust-express-backend.onrender.com/api";
-    const socketUrl = backendUrl.replace(/\/api$/, "");
+    const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+    let socketUrl = backendUrl.replace(/\/api$/, "");
+    if (socketUrl === "") socketUrl = "http://localhost:5000";
     this.socket = io(socketUrl);
 
     this.socket.on("newOrder", (newOrder) => {

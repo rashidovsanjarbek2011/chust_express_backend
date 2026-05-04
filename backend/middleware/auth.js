@@ -39,10 +39,10 @@ exports.protect = async (req, res, next) => {
     // Let's use the standard request attachment if available, or fallback.
 
     if (!req.prisma) {
-      // Fallback if req.prisma isn't there yet (though server.js likely sets it)
-      const { PrismaClient } = require("@prisma/client");
-      const prisma = new PrismaClient();
-      req.prisma = prisma;
+      return res.status(500).json({
+        success: false,
+        message: "Database connection not available. Please try again.",
+      });
     }
 
     const user = await req.prisma.user.findUnique({

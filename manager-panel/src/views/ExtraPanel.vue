@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-zinc-950 p-4 sm:p-6">
+  <div class="min-h-screen bg-zinc-950 text-white p-4 sm:p-6">
     <!-- Header -->
     <div class="max-w-7xl mx-auto mb-8">
       <div class="flex justify-between items-center">
@@ -36,6 +36,8 @@
 
     <!-- Content -->
     <div class="max-w-7xl mx-auto">
+      <transition name="fade-slide" mode="out-in">
+        <div :key="activeTab">
       <!-- Territories Tab -->
       <div v-if="activeTab === 'territories'" class="space-y-6">
         <div class="flex justify-between items-center">
@@ -397,6 +399,8 @@
           <p class="text-zinc-500">Coming soon - Advanced scheduling and dispatch management</p>
         </div>
       </div>
+        </div>
+      </transition>
     </div>
   </div>
 </template>
@@ -542,6 +546,23 @@ export default {
 
 .input-field::placeholder {
   color: rgba(255, 255, 255, 0.3);
+}
+
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.fade-slide-enter-from,
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.fade-slide-enter-to,
+.fade-slide-leave-from {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .scrollbar-hide::-webkit-scrollbar {

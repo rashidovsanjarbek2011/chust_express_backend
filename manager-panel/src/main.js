@@ -13,13 +13,13 @@ const routes = [
     path: "/dashboard",
     name: "dashboard",
     component: Dashboard,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, role: "manager" },
   },
   {
     path: "/extra-panel",
     name: "extra-panel",
     component: ExtraPanel,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, role: "extra-user" },
   },
 ];
 
@@ -34,17 +34,33 @@ router.beforeEach((to, from, next) => {
 
   if (to.meta.requiresAuth && !token) {
     next("/login");
-  } else if (to.path === "/login" && token && user.role === "manager") {
-    next("/dashboard");
-  } else {
-    next();
+    return;
   }
+
+  if (to.meta.requiresAuth && to.meta.role && user.role !== to.meta.role) {
+    // Redirect unauthorized users to a safe page
+    next("/dashboard");
+    return;
+  }
+
+  if (to.path === "/login" && token) {
+    if (user.role === "manager") {
+      next("/dashboard");
+    } else if (user.role === "extra-user") {
+      next("/extra-panel");
+    } else {
+      next("/login");
+    }
+    return;
+  }
+
+  next();
 });
 
 import axios from "axios";
 
-// Force backend URL
-axios.defaults.baseURL = "https://chust-express-backend.onrender.com";
+// Use environment variable for backend URL with fallback
+axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL || "https://chust-express-backend.onrender.com";
 
 const app = createApp(App);
 app.use(router);

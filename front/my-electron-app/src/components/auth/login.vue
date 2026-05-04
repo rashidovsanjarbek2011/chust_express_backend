@@ -7,10 +7,10 @@
         <h1
           class="text-4xl font-black text-green-500 tracking-tighter uppercase mb-2"
         >
-          Kirish
+          {{$t('login')}}
         </h1>
         <p class="text-zinc-500 text-sm">
-          Xush kelibsiz! Tizimga kirish uchun ma'lumotlarni kiriting.
+          {{$t('welcome_login_message')}}
         </p>
       </div>
 
@@ -34,12 +34,12 @@
         <div>
           <label
             class="block text-zinc-500 font-black uppercase text-[10px] tracking-widest mb-2"
-            >E-pochta</label
+            >{{$t('email')}}</label
           >
           <input
             v-model="formData.email"
             type="email"
-            placeholder="email@example.com"
+            :placeholder="$t('email_placeholder')"
             class="w-full bg-zinc-900/50 border border-zinc-800 focus:border-green-500 rounded-xl p-4 text-white outline-none transition-all font-bold placeholder:text-zinc-700"
           />
         </div>
@@ -47,13 +47,13 @@
         <div>
           <label
             class="block text-zinc-500 font-black uppercase text-[10px] tracking-widest mb-2"
-            >Parol</label
+            >{{$t('password')}}</label
           >
           <div class="relative">
             <input
               v-model="formData.password"
               :type="slashed ? 'password' : 'text'"
-              placeholder="••••••••"
+              :placeholder="$t('password_placeholder')"
               class="w-full bg-zinc-900/50 border border-zinc-800 focus:border-green-500 rounded-xl p-4 text-white outline-none transition-all font-bold placeholder:text-zinc-700"
             />
             <button
@@ -68,75 +68,71 @@
           </div>
         </div>
 
-        <!-- Ko'dlar uchun bo'lim -->
+        <!-- Staff Codes Section (fully translatable) -->
         <div class="space-y-4 pt-4 border-t border-zinc-900">
-          <p class="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 mb-4 text-center">Xodimlar uchun maxsus kodlar</p>
-          
+          <p class="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 mb-4 text-center">{{$t('special_codes_for_staff')}}</p>
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-zinc-500 font-black uppercase text-[9px] tracking-widest mb-1.5">Extra Kodi</label>
+              <label class="block text-zinc-500 font-black uppercase text-[9px] tracking-widest mb-1.5">{{$t('extra_code')}}</label>
               <input
                 v-model="formData.extraCode"
                 type="text"
-                placeholder="EXT-XXXXXX"
+                :placeholder="$t('extra_code_placeholder')"
                 class="w-full bg-zinc-900/30 border border-zinc-800/50 focus:border-orange-500/50 rounded-lg p-3 text-white outline-none transition-all font-bold placeholder:text-zinc-800 text-xs"
               />
             </div>
             <div>
-              <label class="block text-zinc-500 font-black uppercase text-[9px] tracking-widest mb-1.5">Ishchi Kodi</label>
+              <label class="block text-zinc-500 font-black uppercase text-[9px] tracking-widest mb-1.5">{{$t('worker_code')}}</label>
               <input
                 v-model="formData.uniqueCode"
                 type="text"
-                placeholder="Worker"
+                :placeholder="$t('worker_code_placeholder')"
                 class="w-full bg-zinc-900/30 border border-zinc-800/50 focus:border-green-500/50 rounded-lg p-3 text-white outline-none transition-all font-bold placeholder:text-zinc-800 text-xs"
               />
             </div>
           </div>
-
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-zinc-500 font-black uppercase text-[9px] tracking-widest mb-1.5">Ega Kodi</label>
+              <label class="block text-zinc-500 font-black uppercase text-[9px] tracking-widest mb-1.5">{{$t('owner_code')}}</label>
               <input
                 v-model="formData.legacyCode"
                 type="text"
-                placeholder="Owner"
+                :placeholder="$t('owner_code_placeholder')"
                 class="w-full bg-zinc-900/30 border border-zinc-800/50 focus:border-green-500/50 rounded-lg p-3 text-white outline-none transition-all font-bold placeholder:text-zinc-800 text-xs"
               />
             </div>
             <div>
-              <label class="block text-zinc-500 font-black uppercase text-[9px] tracking-widest mb-1.5">Menejer</label>
+              <label class="block text-zinc-500 font-black uppercase text-[9px] tracking-widest mb-1.5">{{$t('manager_code')}}</label>
               <input
                 v-model="formData.managerCode"
                 type="text"
-                placeholder="Manager"
+                :placeholder="$t('manager_code_placeholder')"
                 class="w-full bg-zinc-900/30 border border-zinc-800/50 focus:border-green-500/50 rounded-lg p-3 text-white outline-none transition-all font-bold placeholder:text-zinc-800 text-xs"
               />
             </div>
           </div>
-
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-zinc-500 font-black uppercase text-[9px] tracking-widest mb-1.5">Kuryer Kodi</label>
+              <label class="block text-zinc-500 font-black uppercase text-[9px] tracking-widest mb-1.5">{{$t('courier_code')}}</label>
               <input
                 v-model="formData.deliveryCode"
                 type="text"
-                placeholder="Delivery"
+                :placeholder="$t('courier_code_placeholder')"
                 class="w-full bg-zinc-900/30 border border-zinc-800/50 focus:border-green-500/50 rounded-lg p-3 text-white outline-none transition-all font-bold placeholder:text-zinc-800 text-xs"
               />
             </div>
           </div>
-
-          <!-- Ish Maydoni faqat kuryer kodi TO'G'RI bo'lganda chiqadi -->
+          <!-- Work Area for Courier -->
           <transition name="fade">
             <div v-if="isDeliveryCodeValid" class="mt-4 p-4 bg-green-500/5 border border-green-500/10 rounded-xl">
-              <label class="block text-green-500/70 font-black uppercase text-[9px] tracking-widest mb-2">Ish Maydoni (Xaritalash uchun)</label>
+              <label class="block text-green-500/70 font-black uppercase text-[9px] tracking-widest mb-2">{{$t('work_area_for_map')}}</label>
               <input
                 v-model="formData.workingRegion"
                 type="text"
-                placeholder="Masalan: Chilonzor, Yunusobod..."
+                :placeholder="$t('work_area_placeholder')"
                 class="w-full bg-zinc-900 border border-green-500/20 focus:border-green-500 rounded-xl p-4 text-white outline-none transition-all font-bold placeholder:text-zinc-700 text-sm"
               />
-              <p class="text-[9px] text-zinc-600 mt-2 italic">* Kuryer sifatida ishlash uchun hududni kiriting</p>
+              <p class="text-[9px] text-zinc-600 mt-2 italic">{{$t('enter_area_for_courier')}}</p>
             </div>
           </transition>
         </div>
@@ -146,18 +142,18 @@
           :disabled="loading"
           class="w-full py-5 bg-green-600 hover:bg-green-700 disabled:bg-zinc-800 disabled:text-zinc-600 text-white font-black uppercase tracking-[0.2em] text-xs rounded-2xl transition-all shadow-xl shadow-green-500/20 mt-4"
         >
-          <span v-if="loading" class="animate-pulse">Yuborilmoqda...</span>
-          <span v-else>Kirish</span>
+          <span v-if="loading" class="animate-pulse">{{$t('sending')}}...</span>
+          <span v-else>{{$t('login')}}</span>
         </button>
 
         <p
           class="text-center text-zinc-500 text-xs font-bold uppercase tracking-widest mt-8"
         >
-          Ro'yxatdan o'tmaganmisiz?
+          {{$t('not_registered')}}
           <router-link
             :to="{ name: 'register' }"
             class="text-green-500 hover:text-green-400 transition-colors ml-1"
-            >Ro'yxatdan o'tish</router-link
+            >{{$t('register')}}</router-link
           >
         </p>
       </div>
@@ -170,6 +166,11 @@ import axios from "axios";
 
 export default {
   name: "Login",
+  watch: {
+    '$i18n.locale'() {
+      this.$forceUpdate();
+    }
+  },
   data() {
     return {
       slashed: true,
@@ -204,7 +205,7 @@ export default {
       const cleanWorkingRegion = workingRegion ? workingRegion.trim() : null;
 
       if (!email || !password) {
-        this.error = "Email va parol majburiy.";
+        this.error = this.$t('error_email_password_required');
         return;
       }
 
@@ -240,7 +241,7 @@ export default {
           localStorage.setItem("user", JSON.stringify(data));
         }
 
-        this.success = "Kirish muvaffaqiyatli!";
+        this.success = this.$t('login_success');
         window.dispatchEvent(new Event("userLoggedIn"));
 
         setTimeout(() => {
@@ -261,7 +262,7 @@ export default {
       } catch (error) {
         this.error =
           error.response?.data?.message ||
-          "Login jarayonida xatolik yuz berdi.";
+          this.$t('login_error');
       } finally {
         this.loading = false;
       }

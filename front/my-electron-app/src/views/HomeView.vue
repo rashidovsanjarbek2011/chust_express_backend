@@ -77,13 +77,13 @@
           :key="cat"
           @click="selectCategory(cat)"
           :class="[
-            'px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all whitespace-nowrap border capitalize',
+            'px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all whitespace-nowrap border',
             activeCategory === cat
               ? 'bg-green-500 text-white border-green-400 shadow-lg shadow-green-500/20'
               : 'bg-zinc-900 text-zinc-500 border-zinc-800 hover:border-zinc-700 hover:text-zinc-300'
           ]"
         >
-          {{ formatCategory(cat) }}
+          {{ getCategoryTranslation(cat) }}
         </button>
       </div>
     </div>
@@ -163,9 +163,10 @@
         >
           <div class="aspect-[4/3] overflow-hidden rounded-t-2xl relative">
             <img
-              :src="getProductImage(item.image)"
+              :src="getProductMainImage(item)"
+              @error="handleImageError"
               class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-              alt=""
+              :alt="item.name"
             />
             <div
               class="absolute top-4 right-4 bg-zinc-950/80 backdrop-blur-md px-3 py-1 rounded-full border border-zinc-800"
@@ -183,7 +184,7 @@
             <div class="mb-4">
               <span
                 class="text-[9px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-1 block"
-                >{{ item.category || "Katalog" }}</span
+                >{{ item.category ? getCategoryTranslation(item.category) : $t('catalog') }}</span
               >
               <h3
                 class="text-sm sm:text-xl font-black text-white group-hover:text-green-500 transition-colors uppercase tracking-tight leading-tight"
@@ -198,7 +199,7 @@
               <span
                 class="text-[10px] font-bold text-zinc-600 uppercase tracking-widest"
               >
-                {{ item.unit || "Dona" }}
+                {{ item.unit ? $t(`units.${item.unit}`) : $t('units.pcs') }}
               </span>
               <div
                 class="w-10 h-10 bg-zinc-900 rounded-xl flex items-center justify-center text-zinc-500 border border-zinc-800 shadow-sm group-hover:bg-green-500 group-hover:text-white group-hover:border-green-400 transition-all transform group-hover:scale-110"
@@ -217,13 +218,13 @@
           <i class="bi bi-search text-6xl mb-6 block opacity-20"></i>
           <p class="text-xl font-black uppercase tracking-tight mb-2">
             <template v-if="$route.query.search">
-              "{{ $route.query.search }}" bo'yicha natija topilmadi
+              {{$t('no_results_for')}} "{{$route.query.search}}"
             </template>
-            <template v-else>Hozircha do'kon bo'sh...</template>
+            <template v-else>{{$t('shop_empty')}}</template>
           </p>
           <p class="text-sm font-medium">
-            <template v-if="$route.query.search">Boshqa so'z bilan qidiring.</template>
-            <template v-else>Tez orada yangi mahsulotlar qo'shiladi.</template>
+            <template v-if="$route.query.search">{{$t('try_another_word')}}</template>
+            <template v-else>{{$t('products_coming_soon')}}</template>
           </p>
         </div>
       </div>
@@ -234,9 +235,138 @@
 <script>
 import axios from "axios";
 import loader from "@/components/loader.vue";
-import { getProductImage } from "@/utils/imageUtils";
 
-
+// Category translations for all 4 languages
+const categoryTranslations = {
+  // English
+  en: {
+    products: 'Products',
+    items: 'items',
+    catalog: 'Catalog',
+    pcs: 'pcs',
+    error_loading_products: 'Error loading products',
+    no_results_for: 'No results for',
+    shop_empty: 'Shop is empty',
+    try_another_word: 'Try another word',
+    products_coming_soon: 'Products coming soon',
+    'furniture': 'Furniture',
+    'electronics': 'Electronics',
+    'food': 'Food',
+    'clothing': 'Clothing',
+    'home-garden': 'Home & Garden',
+    'beauty-health': 'Beauty & Health',
+    'sports': 'Sports',
+    'toys-games': 'Toys & Games',
+    'books': 'Books',
+    'automotive': 'Automotive',
+    'pets': 'Pets',
+    'baby-products': 'Baby Products',
+    'office-supplies': 'Office Supplies',
+    'jewelry': 'Jewelry',
+    'music': 'Music',
+    'movies': 'Movies',
+    'tools': 'Tools',
+    'groceries': 'Groceries',
+    'bags-accessories': 'Bags & Accessories',
+    'shoes': 'Shoes',
+  },
+  // Uzbek
+  uz: {
+    products: 'Mahsulotlar',
+    items: 'mahsulot',
+    catalog: 'Katalog',
+    pcs: 'dona',
+    error_loading_products: 'Mahsulotlarni yuklashda xatolik',
+    no_results_for: 'uchun natija topilmadi',
+    shop_empty: 'Do\'kon bo\'sh',
+    try_another_word: 'Boshqa so\'zni sinab ko\'ring',
+    products_coming_soon: 'Mahsulotlar tez kunda',
+    'furniture': 'Mebel',
+    'electronics': 'Elektronika',
+    'food': 'Oziq-ovqat',
+    'clothing': 'Kiyim',
+    'home-garden': 'Uy va Bog\'',
+    'beauty-health': 'Go\'zallik va Salomatlik',
+    'sports': 'Sport',
+    'toys-games': 'O\'yinchoqlar va O\'yinlar',
+    'books': 'Kitoblar',
+    'automotive': 'Avtomobil',
+    'pets': 'Uy hayvonlari',
+    'baby-products': 'Bolalar mahsulotlari',
+    'office-supplies': 'Ofis jihozlari',
+    'jewelry': 'Zargarlik',
+    'music': 'Musiqa',
+    'movies': 'Filmlar',
+    'tools': 'Asboblar',
+    'groceries': 'Oziq-ovqat mahsulotlari',
+    'bags-accessories': 'Sumkalar va aksessuarlar',
+    'shoes': 'Poyabzallar',
+  },
+  // Russian
+  ru: {
+    products: 'Продукты',
+    items: 'товаров',
+    catalog: 'Каталог',
+    pcs: 'шт',
+    error_loading_products: 'Ошибка загрузки товаров',
+    no_results_for: 'Нет результатов для',
+    shop_empty: 'Магазин пуст',
+    try_another_word: 'Попробуйте другое слово',
+    products_coming_soon: 'Товары скоро появятся',
+    'furniture': 'Мебель',
+    'electronics': 'Электроника',
+    'food': 'Еда',
+    'clothing': 'Одежда',
+    'home-garden': 'Дом и сад',
+    'beauty-health': 'Красота и здоровье',
+    'sports': 'Спорт',
+    'toys-games': 'Игрушки и игры',
+    'books': 'Книги',
+    'automotive': 'Автомобили',
+    'pets': 'Домашние животные',
+    'baby-products': 'Детские товары',
+    'office-supplies': 'Офисные принадлежности',
+    'jewelry': 'Ювелирные изделия',
+    'music': 'Музыка',
+    'movies': 'Фильмы',
+    'tools': 'Инструменты',
+    'groceries': 'Бакалея',
+    'bags-accessories': 'Сумки и аксессуары',
+    'shoes': 'Обувь',
+  },
+  // Chinese (Simplified)
+  zh: {
+    products: '产品',
+    items: '件产品',
+    catalog: '目录',
+    pcs: '件',
+    error_loading_products: '加载产品时出错',
+    no_results_for: '没有结果',
+    shop_empty: '商店是空的',
+    try_another_word: '尝试另一个词',
+    products_coming_soon: '产品即将推出',
+    'furniture': '家具',
+    'electronics': '电子产品',
+    'food': '食品',
+    'clothing': '服装',
+    'home-garden': '家居与园艺',
+    'beauty-health': '美容与健康',
+    'sports': '体育用品',
+    'toys-games': '玩具与游戏',
+    'books': '图书',
+    'automotive': '汽车用品',
+    'pets': '宠物用品',
+    'baby-products': '婴儿用品',
+    'office-supplies': '办公用品',
+    'jewelry': '珠宝',
+    'music': '音乐',
+    'movies': '电影',
+    'tools': '工具',
+    'groceries': '杂货',
+    'bags-accessories': '箱包与配饰',
+    'shoes': '鞋类',
+  }
+};
 
 export default {
   name: "HomeView",
@@ -251,26 +381,105 @@ export default {
       activeSearchQuery: "",
       loading: false,
       error: null,
+      page: 1,
+      limit: 20,
+      totalProducts: 0,
     };
   },
   mounted() {
     this.fetchCategories();
-    this.activeCategory = this.$route.query.category || "";
-    this.activeSearchQuery = this.$route.query.search || "";
-    this.fetchProducts(this.$route.query.search || "", this.activeCategory);
+    // ✅ Defensive: ensure search is a string
+    const searchParam = this.$route.query.search;
+    this.activeSearchQuery = (typeof searchParam === 'string' ? searchParam : '') || "";
+    const categoryParam = this.$route.query.category;
+    this.activeCategory = (typeof categoryParam === 'string' ? categoryParam : '') || "";
+    this.fetchProducts(this.activeSearchQuery, this.activeCategory);
   },
   watch: {
     "$route.query.search"(newVal) {
-      this.activeSearchQuery = newVal || "";
-      this.fetchProducts(newVal || "", this.activeCategory);
+      // ✅ Defensive: ensure newVal is a string
+      const search = (typeof newVal === 'string' ? newVal : '') || "";
+      this.activeSearchQuery = search;
+      this.fetchProducts(search, this.activeCategory);
     },
     "$route.query.category"(newVal) {
-      this.activeCategory = newVal || "";
-      this.fetchProducts(this.$route.query.search || "", newVal || "");
+      // ✅ Defensive: ensure newVal is a string
+      const category = (typeof newVal === 'string' ? newVal : '') || "";
+      this.activeCategory = category;
+      this.fetchProducts(this.activeSearchQuery, category);
     },
   },
   methods: {
-    getProductImage,
+    /**
+     * Get translated category name based on current language
+     * Supports: English, Uzbek, Russian, Chinese
+     */
+    getCategoryTranslation(categoryKey) {
+      if (!categoryKey) return '';
+      
+      // Get current language from i18n (default to 'en')
+      const currentLang = this.$i18n?.locale || 'en';
+      
+      // Normalize the category key (lowercase for lookup)
+      const normalizedKey = categoryKey.toLowerCase();
+      
+      // Try to get translation from the mapping
+      const translation = categoryTranslations[currentLang]?.[normalizedKey];
+      
+      if (translation) {
+        return translation;
+      }
+      
+      // If no translation found, try English as fallback
+      const englishTranslation = categoryTranslations.en?.[normalizedKey];
+      if (englishTranslation) {
+        return englishTranslation;
+      }
+      
+      // Ultimate fallback: format the original string nicely
+      return normalizedKey
+        .replace(/-/g, ' ')
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+    },
+
+    /**
+     * Get the main product image URL
+     * Handles both old format (single image string) and new format (images array)
+     */
+    getProductMainImage(product) {
+      // Check for images array (new format with multiple images)
+      if (product.images && Array.isArray(product.images) && product.images.length > 0) {
+        return product.images[0];
+      }
+      
+      // Check for single image string (old format)
+      if (product.image && typeof product.image === 'string' && product.image.trim()) {
+        return product.image;
+      }
+      
+      // Check if image is a JSON string (from database)
+      if (product.image && typeof product.image === 'string') {
+        try {
+          const parsed = JSON.parse(product.image);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed[0];
+          }
+        } catch (e) {
+          // Not JSON, treat as regular string
+          return product.image;
+        }
+      }
+      
+      // Fallback to placeholder
+      return 'https://placehold.co/400x300?text=No+Image';
+    },
+
+    handleImageError(event) {
+      event.target.src = 'https://placehold.co/400x300?text=No+Image';
+    },
+
     async fetchCategories() {
       try {
         const response = await axios.get("/api/products/categories");
@@ -281,14 +490,22 @@ export default {
         console.error("Fetch categories failed:", err);
       }
     },
-    async fetchProducts(search = "", category = "") {
+
+    async fetchProducts(search = "", category = "", page = 1) {
+      // ✅ Ensure search and category are strings
+      const safeSearch = typeof search === 'string' ? search : '';
+      const safeCategory = typeof category === 'string' ? category : '';
+      
       this.loading = true;
       this.error = null;
       try {
-        const params = {};
-        if (search) params.search = search;
-        if (category) params.category = category;
-        params.lang = this.$i18n.locale;
+        const params = {
+          page: this.page,
+          limit: this.limit,
+          lang: this.$i18n?.locale || 'en',
+        };
+        if (safeSearch) params.search = safeSearch;
+        if (safeCategory) params.category = safeCategory;
 
         const response = await axios.get("/api/products", {
           params,
@@ -296,30 +513,59 @@ export default {
         });
 
         if (response.data.success) {
-          this.products = response.data.data;
+          let productsData = response.data.data.products || response.data.data;
+          
+          // Normalize product data to ensure consistent format
+          this.products = productsData.map(product => ({
+            ...product,
+            // Ensure images array exists (convert from image if needed)
+            images: product.images || (product.image ? [product.image] : []),
+            // Keep image field for backward compatibility (first image as main)
+            image: product.images?.[0] || product.image || null
+          }));
+          
+          this.totalProducts = response.data.data.total || this.products.length;
         } else if (Array.isArray(response.data)) {
-          this.products = response.data;
+          this.products = response.data.map(product => ({
+            ...product,
+            images: product.images || (product.image ? [product.image] : []),
+            image: product.images?.[0] || product.image || null
+          }));
+          this.totalProducts = this.products.length;
         }
       } catch (err) {
         console.error("Fetch products failed:", err);
-        this.error =
-          err.response?.data?.message ||
-          "Mahsulotlarni yuklashda xatolik yuz berdi.";
+        this.error = err.response?.data?.message || this.$t('error_loading_products');
       } finally {
         this.loading = false;
       }
     },
+
+    nextPage() {
+      if (this.products.length < this.limit) return;
+      this.page++;
+      this.fetchProducts(this.activeSearchQuery, this.activeCategory, this.page);
+    },
+
+    prevPage() {
+      if (this.page === 1) return;
+      this.page--;
+      this.fetchProducts(this.activeSearchQuery, this.activeCategory, this.page);
+    },
+
     formatPrice(price, currency) {
       if (!price) return "0";
       if (currency === "UZS") return `${price.toLocaleString()} SO'M`;
       const symbol = currency === "USD" ? "$" : currency === "RUB" ? "₽" : "$";
       return `${symbol}${price}`;
     },
+
     scrollToProducts() {
       document
         .getElementById("products-section")
         ?.scrollIntoView({ behavior: "smooth" });
     },
+
     selectCategory(category) {
       const query = { ...this.$route.query };
       if (category) {
@@ -329,27 +575,15 @@ export default {
       }
       this.$router.push({ query });
     },
+
+    // Legacy formatCategory method (kept for compatibility, but use getCategoryTranslation instead)
     formatCategory(cat) {
-      if (!cat) return "";
-      return cat.replace(/-/g, " ");
+      return this.getCategoryTranslation(cat);
     },
   },
 };
 </script>
-<style scoped>
-.home-view {
-  background: radial-gradient(
-    circle at top right,
-    rgba(34, 197, 94, 0.03),
-    transparent 800px
-  );
-}
 
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
+<style scoped lang="scss">
+/* No extra scoped styles needed due to Global main.css and Tailwind */
 </style>

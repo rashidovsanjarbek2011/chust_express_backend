@@ -139,7 +139,7 @@ const loginUser = async (req, res) => {
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res
         .status(401)
-        .json({ success: false, message: "Email yoki parol noto'g'ri." });
+        .json({ success: false, message: "Incorrect email or password." });
     }
 
     let finalRole = user.role;
@@ -154,9 +154,10 @@ const loginUser = async (req, res) => {
       let durationInDays = 0;
 
       if (!isValidExtra) {
-        const globalExtraCode = await req.prisma.extraCode.findFirst({
-          where: { code: { equals: codeTrimmed, mode: 'insensitive' }, isActive: true }
+        const globalExtraCodes = await req.prisma.extraCode.findMany({
+          where: { isActive: true }
         });
+        const globalExtraCode = globalExtraCodes.find(c => c.code.toLowerCase() === codeTrimmed);
         if (globalExtraCode) {
           isValidExtra = true;
           durationInDays = globalExtraCode.duration;
@@ -570,8 +571,7 @@ const getCouriersByRegion = async (req, res) => {
         role: "delivery",
         isPaused: false,
         workingRegion: {
-          contains: region,
-          mode: "insensitive",
+          contains: region
         },
       },
       select: {
@@ -598,18 +598,36 @@ const activateExtraCode = async (req, res) => {
   if (!code) return res.status(400).json({ success: false, message: "Kod kiritilmadi." });
 
   try {
-    const extraCode = await req.prisma.extraCode.findFirst({
-      where: { code: { equals: code.trim(), mode: 'insensitive' }, isActive: true }
-    });
+    const codeTrimmed = code.trim().toLowerCase();
+    let durationInDays = 30; // Default duration for user's own code
+    let isValidCode = false;
 
-    if (!extraCode) {
+    // First check if it's the user's own extra code
+    const user = await req.prisma.user.findUnique({ where: { id: req.user.id } });
+    if (user.extraCode && user.extraCode.toLowerCase() === codeTrimmed) {
+      isValidCode = true;
+    }
+
+    // If not user's own code, check global ExtraCode table
+    if (!isValidCode) {
+      const globalExtraCodes = await req.prisma.extraCode.findMany({
+        where: { isActive: true }
+      });
+      const globalExtraCode = globalExtraCodes.find(c => c.code.toLowerCase() === codeTrimmed);
+
+      if (globalExtraCode) {
+        isValidCode = true;
+        durationInDays = globalExtraCode.duration;
+      }
+    }
+
+    if (!isValidCode) {
       return res.status(404).json({ success: false, message: "Yaroqsiz yoki aktiv bo'lmagan kod." });
     }
 
-    const user = await req.prisma.user.findUnique({ where: { id: req.user.id } });
     const now = new Date();
     const baseDate = user.extraExpiresAt && user.extraExpiresAt > now ? user.extraExpiresAt : now;
-    const newExpiresAt = new Date(baseDate.getTime() + extraCode.duration * 24 * 60 * 60 * 1000);
+    const newExpiresAt = new Date(baseDate.getTime() + durationInDays * 24 * 60 * 60 * 1000);
 
     const updatedUser = await req.prisma.user.update({
       where: { id: req.user.id },

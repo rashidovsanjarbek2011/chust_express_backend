@@ -4,7 +4,7 @@
     <div class="pt-32 px-4 md:px-0">
       <router-view v-slot="{ Component }">
         <transition name="page-fade" mode="out-in">
-          <component :is="Component" />
+          <component :is="Component" :key="$i18n.locale + $route.fullPath" />
         </transition>
       </router-view>
     </div>

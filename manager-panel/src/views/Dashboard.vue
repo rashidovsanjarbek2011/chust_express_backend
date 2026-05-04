@@ -410,7 +410,7 @@ export default {
       if (this.activeTab === 'orders') {
         this.fetchOrders();
       }
-    }, 5000);
+    }, 60000);
   },
   methods: {
     getAuthHeaders() {

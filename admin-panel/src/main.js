@@ -5,7 +5,7 @@ import router from "./router";
 
 import axios from "axios";
 
-// Force backend URL to avoid proxy issues in different environments
-axios.defaults.baseURL = "https://chust-express-backend.onrender.com";
+// Use environment variable for backend URL with fallback
+axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL || "https://chust-express-backend.onrender.com";
 
 createApp(App).use(router).mount("#app");
