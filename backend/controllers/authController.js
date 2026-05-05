@@ -101,11 +101,10 @@ const registerUser = async (req, res) => {
         message: `Unique constraint failed: ${target}`,
       });
     }
-    const message =
-      process.env.NODE_ENV === "development"
-        ? error.message
-        : "Serverda xatolik.";
-    res.status(500).json({ success: false, message });
+    // DEBUG: Always show actual error for diagnostics
+    const message = error.message || "Serverda xatolik.";
+    console.error("Registration error:", error);
+    res.status(500).json({ success: false, message, code: error.code });
   }
 };
 
