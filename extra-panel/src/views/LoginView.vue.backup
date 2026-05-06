@@ -1,0 +1,134 @@
+<script setup>
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { Lock, Mail, Loader2, ShieldCheck } from 'lucide-vue-next'
+import api from '../services/api'
+
+const router = useRouter()
+const email = ref('')
+const password = ref('')
+const extraCode = ref('')
+const loading = ref(false)
+const error = ref('')
+
+const handleLogin = async () => {
+  loading.value = true
+  error.value = ''
+  console.log('Login attempt:', {
+    email: email.value,
+    password: password.value,
+    extraCode: extraCode.value
+  })
+  try {
+    const { data } = await api.post('auth/login', {
+      email: email.value,
+      password: password.value,
+      extraCode: extraCode.value
+    })
+    console.log('Login response:', data)
+
+    if (data.success) {
+      // Allow both extra-user and regular user
+      if (data.role !== 'extra-user' && data.role !== 'user') {
+        error.value = 'Access denied. This panel is for Extra Service providers.'
+        return
+      }
+      localStorage.setItem('token', data.token)
+      localStorage.setItem('user', JSON.stringify(data.data))
+      router.push({ name: 'dashboard' })
+    }
+  } catch (err) {
+    error.value = err.response?.data?.message || 'Login failed. Please check your credentials.'
+  } finally {
+    loading.value = false
+  }
+}
+</script>
+
+<template>
+  <div class="min-h-screen flex items-center justify-center p-4 bg-neutral-900 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(99,102,241,0.15),rgba(255,255,255,0))]">
+    <div class="w-full max-w-md">
+      <div class="text-center mb-10">
+        <div class="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br from-indigo-500 to-cyan-500 p-0.5 mb-6 shadow-2xl shadow-indigo-500/20">
+          <div class="w-full h-full bg-neutral-900 rounded-[22px] flex items-center justify-center">
+            <ShieldCheck class="w-10 h-10 text-indigo-400" />
+          </div>
+        </div>
+        <h1 class="text-4xl font-bold bg-gradient-to-r from-white to-neutral-500 bg-clip-text text-transparent">Extra Services</h1>
+        <p class="text-neutral-500 mt-3 font-medium">Professional Services Management Portal</p>
+      </div>
+
+      <div class="glass-dark rounded-3xl p-8 border border-white/5 shadow-2xl relative overflow-hidden group">
+        <div class="absolute -top-24 -right-24 w-48 h-48 bg-indigo-500/10 blur-[100px] group-hover:bg-indigo-500/20 transition-colors duration-500"></div>
+        
+        <form @submit.prevent="handleLogin" class="space-y-6 relative z-10">
+          <div v-if="error" class="p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-rose-400 text-sm font-medium">
+            {{ error }}
+          </div>
+
+          <div class="space-y-2">
+            <label class="text-sm font-semibold text-neutral-400 ml-1">Email Address</label>
+            <div class="relative group/input">
+              <Mail class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-500 group-focus-within/input:text-indigo-400 transition-colors" />
+              <input 
+                v-model="email" 
+                type="email" 
+                required
+                placeholder="name@company.com"
+                autocomplete="off"
+                autocorrect="off"
+                autocapitalize="off"
+                spellcheck="false"
+                class="w-full bg-black/40 border border-white/5 rounded-2xl py-3.5 pl-12 pr-4 text-white focus:outline-none focus:border-indigo-500/50 transition-all font-medium placeholder:text-neutral-600"
+              />
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <label class="text-sm font-semibold text-neutral-400 ml-1">Security Code</label>
+            <div class="relative group/input">
+              <Lock class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-500 group-focus-within/input:text-indigo-400 transition-colors" />
+              <input 
+                v-model="extraCode" 
+                type="text" 
+                placeholder="EXTRA-XXXXXX"
+                autocomplete="off"
+                autocorrect="off"
+                autocapitalize="off"
+                spellcheck="false"
+                class="w-full bg-black/40 border border-white/5 rounded-2xl py-3.5 pl-12 pr-4 text-white focus:outline-none focus:border-indigo-500/50 transition-all font-mono tracking-widest placeholder:text-neutral-600 placeholder:font-sans"
+              />
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <label class="text-sm font-semibold text-neutral-400 ml-1">Password</label>
+            <div class="relative group/input">
+              <Lock class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-500 group-focus-within/input:text-indigo-400 transition-colors" />
+              <input 
+                v-model="password" 
+                type="password" 
+                required
+                placeholder="••••••••"
+                class="w-full bg-black/40 border border-white/5 rounded-2xl py-3.5 pl-12 pr-4 text-white focus:outline-none focus:border-indigo-500/50 transition-all font-medium placeholder:text-neutral-600"
+              />
+            </div>
+          </div>
+
+          <button 
+            type="submit" 
+            :disabled="loading"
+            class="w-full bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 disabled:opacity-50 text-white font-bold py-4 rounded-2xl transition-all duration-300 shadow-xl shadow-indigo-600/20 active:scale-[0.98] flex items-center justify-center gap-3 mt-4"
+          >
+            <Loader2 v-if="loading" class="w-5 h-5 animate-spin" />
+            <span>{{ loading ? 'Securing Access...' : 'Enter Dashboard' }}</span>
+          </button>
+        </form>
+      </div>
+
+      <p class="text-center text-neutral-600 text-sm mt-8">
+        Need access? Contact your administrator for an Extra Service account.
+      </p>
+    </div>
+  </div>
+</template>
