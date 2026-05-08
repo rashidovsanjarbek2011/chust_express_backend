@@ -147,7 +147,7 @@ app.get("/api/health", async (req, res) => {
 });
 
 // ======================
-// EMERGENCY DB SETUP (RUN PRISMA MIGRATIONS)
+// EMERGENCY DB SETUP (RUN PRISMA DB PUSH FOR POSTGRESQL)
 // ======================
 app.get("/api/setup-db", async (req, res) => {
   const { secret } = req.query;
@@ -158,11 +158,11 @@ app.get("/api/setup-db", async (req, res) => {
   try {
     const { execSync } = require("child_process");
     
-    console.log("🔄 Running Prisma migrations...");
-    const migrateOutput = execSync("npx prisma migrate deploy", {
+    console.log("🔄 Pushing schema to database...");
+    const pushOutput = execSync("npx prisma db push --accept-data-loss", {
       encoding: "utf-8",
       stdio: ["pipe", "pipe", "pipe"],
-      timeout: 60000,
+      timeout: 120000,
     });
     
     console.log("🔄 Generating Prisma client...");
@@ -173,8 +173,8 @@ app.get("/api/setup-db", async (req, res) => {
 
     res.json({
       success: true,
-      message: "Database setup complete",
-      migrate: migrateOutput,
+      message: "Database setup complete - tables created from schema",
+      push: pushOutput,
       generate: generateOutput,
     });
   } catch (error) {
