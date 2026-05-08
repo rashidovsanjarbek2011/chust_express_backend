@@ -10,15 +10,26 @@ const { translate } = require("google-translate-api-x");
 const translationCache = new Map();
 
 const translateText = async (text, targetLang) => {
-  if (!text || !targetLang || targetLang === "ru") return text;
+  if (!text || !targetLang || targetLang === 'ru') return text;
   const cacheKey = `${targetLang}:${text}`;
   if (translationCache.has(cacheKey)) return translationCache.get(cacheKey);
+  
   try {
-    const res = await translate(text, { to: targetLang });
+    // Add timeout to prevent hanging requests
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+    
+    const res = await translate(text, { 
+      to: targetLang,
+      timeout: 5000, // 5 second API timeout
+    });
+    
+    clearTimeout(timeout);
     translationCache.set(cacheKey, res.text);
     return res.text;
   } catch (err) {
-    console.error("Translation error:", err.message);
+    console.error('Translation error:', err.message);
+    // Return original text on any error (timeout, API failure, etc.)
     return text;
   }
 };
@@ -203,11 +214,14 @@ exports.getProducts = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error fetching products:", error);
+    console.error("❌ Error fetching products:", error);
+    console.error("Error code:", error.code);
+    console.error("Error meta:", error.meta);
     res.status(500).json({
       success: false,
-      message: "Mahsulotlarni olishda xatolik.",
-      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+      message: "Error fetching products: " + error.message,
+      error: error.message,
+      code: error.code,
     });
   }
 };
@@ -556,8 +570,13 @@ exports.getCategories = async (req, res) => {
     const categoryList = categories.map(c => c.category).filter(Boolean);
     res.status(200).json({ success: true, data: categoryList });
   } catch (error) {
-    console.error("Error fetching categories:", error);
-    res.status(500).json({ success: false, message: "Server error while fetching categories." });
+    console.error("❌ Error fetching categories:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Error fetching categories: " + error.message,
+      error: error.message,
+      code: error.code,
+    });
   }
 };
 

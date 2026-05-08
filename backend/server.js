@@ -27,9 +27,33 @@ const server = http.createServer(app);
 // ======================
 // CORS CONFIGURATION
 // ======================
+const allowedOrigins = [
+  // Local development
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:5175",
+  "http://localhost:5176",
+  // Netlify production sites
+  "https://chustexpress.netlify.app",
+  "https://admin-paneldelivery.netlify.app",
+  "https://manager-paneldelivery.netlify.app",
+  "https://extra-paneldelivery.netlify.app",
+];
+
 app.use(
   cors({
-    origin: true,
+    origin: function (origin, callback) {
+      // Allow requests with no origin (mobile apps, curl, etc.)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.includes(origin) || process.env.NODE_ENV === "development") {
+        callback(null, true);
+      } else {
+        console.warn(`CORS blocked: ${origin}`);
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: [
@@ -51,10 +75,13 @@ app.use(
 // ======================
 const io = new Server(server, {
   cors: {
-    origin: true,
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
     credentials: true,
   },
+  // Optimize for production
+  pingTimeout: 60000,
+  pingInterval: 25000,
 });
 
 app.use((req, res, next) => {
