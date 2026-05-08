@@ -147,6 +147,47 @@ app.get("/api/health", async (req, res) => {
 });
 
 // ======================
+// EMERGENCY DB SETUP (RUN PRISMA MIGRATIONS)
+// ======================
+app.get("/api/setup-db", async (req, res) => {
+  const { secret } = req.query;
+  if (secret !== process.env.MIGRATE_SECRET) {
+    return res.status(403).json({ error: "Unauthorized - need secret" });
+  }
+
+  try {
+    const { execSync } = require("child_process");
+    
+    console.log("🔄 Running Prisma migrations...");
+    const migrateOutput = execSync("npx prisma migrate deploy", {
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"],
+      timeout: 60000,
+    });
+    
+    console.log("🔄 Generating Prisma client...");
+    const generateOutput = execSync("npx prisma generate", {
+      encoding: "utf-8",
+      timeout: 30000,
+    });
+
+    res.json({
+      success: true,
+      message: "Database setup complete",
+      migrate: migrateOutput,
+      generate: generateOutput,
+    });
+  } catch (error) {
+    console.error("❌ DB setup error:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      stderr: error.stderr?.toString(),
+    });
+  }
+});
+
+// ======================
 // TEMPORARY MIGRATION ENDPOINT (ONE-TIME USE)
 // ======================
 // TEMPORARY MIGRATION ENDPOINT (ONE-TIME USE)
