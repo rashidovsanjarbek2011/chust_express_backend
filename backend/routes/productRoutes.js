@@ -15,16 +15,14 @@ const productController = require("../controllers/productController");
 // ROUTE MAPPING
 // ====================================
 
-// Public routes
+// PUBLIC ROUTES (no authentication required)
 router.get("/", productController.getProducts);
 router.get("/categories", productController.getCategories);
+router.get("/:id", productController.getProductById);  // ⬅️ MOVED HERE: Public product detail
 
-// Protected routes (Specific paths MUST be before wildcards)
+// PROTECTED ROUTES (authentication required)
 router.get("/seller/stats", protect, productController.getSellerStats);
 router.post("/", protect, productController.createProduct);
-
-// Wildcard routes (MUST be at the end)
-router.get("/:id", productController.getProductById);
 router.put("/:id", protect, productController.updateProduct);
 router.delete("/:id", protect, productController.deleteProduct);
 
