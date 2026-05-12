@@ -11,10 +11,16 @@
  * @param {boolean} returnAll - If true, returns array of all images; if false, returns first image
  * @returns {string|string[]} The usable src string(s) for an <img> tag
  */
+// Inline SVG placeholder used when an image is missing or fails to
+// load. Keeping it inline avoids an extra network round-trip to a
+// third-party (placehold.co) on every empty card.
+export const PRODUCT_IMAGE_PLACEHOLDER =
+  "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300' preserveAspectRatio='xMidYMid slice'><rect width='400' height='300' fill='%2318181b'/><g fill='%2352525b' font-family='Inter,Arial,sans-serif' text-anchor='middle' font-weight='700'><text x='200' y='160' font-size='18' letter-spacing='4'>NO IMAGE</text><text x='200' y='190' font-size='12' letter-spacing='2' fill='%2371717a'>CHUST EXPRESS</text></g></svg>";
+
 export function getProductImage(imagePath, returnAll = false) {
   // 1. Handle null/undefined/empty
   if (!imagePath) {
-    return returnAll ? ["https://placehold.co/400x300?text=No+Image"] : "https://placehold.co/400x300?text=No+Image";
+    return returnAll ? [PRODUCT_IMAGE_PLACEHOLDER] : PRODUCT_IMAGE_PLACEHOLDER;
   }
 
   let images = [];
@@ -56,7 +62,7 @@ export function getProductImage(imagePath, returnAll = false) {
     // If it's a non-URL value, we treat it as missing and avoid broken image
     // (e.g. legacy strings like "satellite" as placeholder text)
     if (!normalized.includes(".")) {
-      return "https://placehold.co/400x300?text=No+Image";
+      return PRODUCT_IMAGE_PLACEHOLDER;
     }
 
     const envUrl = import.meta.env.VITE_API_URL;
@@ -70,9 +76,9 @@ export function getProductImage(imagePath, returnAll = false) {
 
   // 4. Return all images or just the first one
   if (returnAll) {
-    return processedImages.length > 0 ? processedImages : ["https://placehold.co/400x300?text=No+Image"];
+    return processedImages.length > 0 ? processedImages : [PRODUCT_IMAGE_PLACEHOLDER];
   } else {
-    return processedImages.length > 0 ? processedImages[0] : "https://placehold.co/400x300?text=No+Image";
+    return processedImages.length > 0 ? processedImages[0] : PRODUCT_IMAGE_PLACEHOLDER;
   }
 }
 

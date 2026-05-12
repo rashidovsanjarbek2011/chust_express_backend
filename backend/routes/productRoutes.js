@@ -19,14 +19,15 @@ const productController = require("../controllers/productController");
 router.get("/", productController.getProducts);
 router.get("/categories", productController.getCategories);
 
-// Protected routes — specific paths BEFORE wildcard /:id
+// Public product detail — shoppers must be able to view a product
+// before being asked to log in. This stays BEFORE the protect middleware.
+router.get("/:id", productController.getProductById);
+
+// Protected routes — write/seller operations require auth.
 router.use(protect);
 router.get("/seller/stats", productController.getSellerStats);
 router.post("/", productController.createProduct);
 router.put("/:id", productController.updateProduct);
 router.delete("/:id", productController.deleteProduct);
-
-// Wildcard /:id — ALWAYS LAST 
-router.get("/:id", productController.getProductById);
 
 module.exports = router;

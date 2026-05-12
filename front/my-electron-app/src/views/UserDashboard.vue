@@ -11,16 +11,16 @@
           <i class="bi bi-shield-check text-blue-500 text-xs"></i>
           <span
             class="text-[10px] font-black uppercase tracking-widest text-blue-500"
-            >Mijoz Paneli</span
+            >{{ $t('customer_panel') }}</span
           >
         </div>
         <h1
           class="text-5xl font-black text-white tracking-tighter uppercase mb-2"
         >
-          Boshqaruv Paneli
+          {{ $t('dashboard_title') }}
         </h1>
         <p class="text-zinc-500 text-lg">
-          Buyurtmalaringiz va hisobingiz holatini kuzating.
+          {{ $t('dashboard_subtitle') }}
         </p>
       </div>
 
@@ -36,10 +36,10 @@
             <i class="bi bi-shop text-3xl"></i>
           </div>
           <h2 class="text-2xl font-black mb-2 uppercase tracking-tight">
-            Katalog
+            {{ $t('catalog') }}
           </h2>
           <p class="text-zinc-500 text-sm leading-relaxed">
-            Yangi va mazali taomlarni qidiring va buyurtma bering.
+            {{ $t('catalog_help') }}
           </p>
           <div
             class="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 transition-opacity"
@@ -58,10 +58,10 @@
             <i class="bi bi-cart3 text-3xl"></i>
           </div>
           <h2 class="text-2xl font-black mb-2 uppercase tracking-tight">
-            Mening Savatim
+            {{ $t('my_cart') }}
           </h2>
           <p class="text-zinc-500 text-sm leading-relaxed">
-            Savatdagi mahsulotlarni ko'ring va xaridni davom ettiring.
+            {{ $t('my_cart_help') }}
           </p>
           <div
             class="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 transition-opacity"
@@ -80,10 +80,10 @@
             <i class="bi bi-person-badge text-3xl"></i>
           </div>
           <h2 class="text-2xl font-black mb-2 uppercase tracking-tight">
-            Profil
+            {{ $t('profile_title') }}
           </h2>
           <p class="text-zinc-500 text-sm leading-relaxed">
-            Shaxsiy ma'lumotlaringizni boshqaring va yangilang.
+            {{ $t('profile_help') }}
           </p>
           <div
             class="absolute -right-2 -bottom-2 opacity-10 group-hover:opacity-20 transition-opacity"
@@ -99,13 +99,13 @@
           class="flex items-center justify-between border-b border-zinc-900 pb-6"
         >
           <h2 class="text-3xl font-black uppercase tracking-tight">
-            Mening Buyurtmalarim
+            {{ $t('my_orders') }}
           </h2>
           <div
             v-if="orders.length > 0"
             class="px-4 py-1.5 bg-zinc-900 rounded-full border border-zinc-800 text-[10px] font-black uppercase tracking-widest text-zinc-500"
           >
-            {{ orders.length }} ta buyurtma
+            {{ orders.length }} {{ $t('orders_count') }}
           </div>
         </div>
 
@@ -134,13 +134,13 @@
         >
           <i class="bi bi-bag-x text-6xl text-zinc-800 mb-6 block"></i>
           <p class="text-xl font-black uppercase tracking-tight text-zinc-500">
-            Sizda hali buyurtmalar yo'q
+            {{ $t('no_orders_yet') }}
           </p>
           <router-link
             to="/"
             class="mt-6 inline-block text-green-500 font-black text-xs uppercase tracking-[0.2em] hover:underline"
           >
-            Hoziroq buyurtma bering
+            {{ $t('order_now') }}
           </router-link>
         </div>
 
@@ -174,7 +174,7 @@
                 </div>
                 <p class="text-xs text-zinc-500 font-medium">
                   {{ formatDate(order.createdAt) }} •
-                  {{ order.items.length }} ta mahsulot
+                  {{ order.items.length }} {{ $t('items_in_order') }}
                 </p>
                 <div class="flex gap-2 mt-3 overflow-hidden">
                   <div
@@ -201,7 +201,7 @@
                 <p
                   class="text-zinc-500 font-black uppercase text-[10px] tracking-widest mb-1"
                 >
-                  Jami Summa
+                  {{ $t('total_amount') }}
                 </p>
                 <p class="text-2xl font-black tracking-tighter text-white">
                   ${{ order.totalPrice.toFixed(2) }}

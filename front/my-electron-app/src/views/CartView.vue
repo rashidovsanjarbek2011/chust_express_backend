@@ -6,16 +6,16 @@
           <h1
             class="text-4xl font-black text-green-500 tracking-tighter uppercase"
           >
-            Savat
+            {{ $t('cart') }}
           </h1>
           <p class="text-zinc-500 text-sm">
-            Sizning tanlangan mahsulotlaringiz
+            {{ $t('cart_subtitle') }}
           </p>
         </div>
         <div class="px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-xl">
           <span
             class="text-zinc-400 font-bold uppercase text-[10px] tracking-widest"
-            >{{ cartItems.length }} ta mahsulot</span
+            >{{ cartItems.length }} {{ $t('items_unit_short') }}</span
           >
         </div>
       </div>
@@ -30,16 +30,16 @@
           <i class="bi bi-cart-x text-5xl"></i>
         </div>
         <h2 class="text-2xl font-black text-zinc-400 uppercase tracking-tight">
-          Savat bo'sh
+          {{ $t('empty_cart') }}
         </h2>
         <p class="text-zinc-600 mb-8 max-w-xs">
-          Iltimos, mahsulotlar ro'yxatidan o'zingizga ma'qulini tanlang
+          {{ $t('empty_cart_hint') }}
         </p>
         <router-link
           to="/"
           class="px-8 py-4 bg-green-600 hover:bg-green-700 text-white font-black uppercase tracking-widest text-xs rounded-xl transition-all shadow-lg shadow-green-500/20"
         >
-          Xarid qilishni boshlash
+          {{ $t('start_shopping') }}
         </router-link>
       </div>
 
@@ -69,7 +69,7 @@
                   <p
                     class="text-zinc-500 text-xs font-bold uppercase tracking-widest mt-1"
                   >
-                    Narxi:
+                    {{ $t('price_label') }}:
                     <span class="text-green-500">
                       {{
                         item.currency = "UZS"
@@ -78,7 +78,7 @@
                       <span
                         v-if="item.currency === 'UZS'"
                         class="text-[10px] opacity-70"
-                        >SO'M</span
+                        >{{ $t('currency_uzs_short') }}</span
                       >
                       <span class="text-[10px] opacity-60"
                         >/ {{ item.unit || "pcs" }}</span
@@ -89,7 +89,7 @@
                     v-if="item.deliveryPrice > 0"
                     class="text-zinc-500 text-[10px] uppercase tracking-widest mt-1"
                   >
-                    Yetkazib berish (dona):
+                    {{ $t('delivery_per_unit') }}:
                     <span class="text-blue-500">
                       {{
                         item.currency = "UZS"
@@ -158,7 +158,7 @@
             <h3
               class="text-zinc-500 font-black uppercase text-xs tracking-[0.2em] mb-8"
             >
-              Hisob-kitob
+              {{ $t('checkout_title') }}
             </h3>
 
             <!-- Shipping Info -->
@@ -166,11 +166,11 @@
               <div>
                 <label
                   class="block text-zinc-500 font-black uppercase text-[10px] tracking-widest mb-2"
-                  >Yetkazib berish manzili</label
+                  >{{ $t('delivery_address_label') }}</label
                 >
                 <textarea
                   v-model="shippingAddress"
-                  placeholder="Shaharlik ko'chasi, 12-uy..."
+                  :placeholder="$t('shipping_placeholder')"
                   rows="2"
                   class="w-full bg-zinc-950 border border-zinc-800 focus:border-green-500 rounded-xl p-3 text-white text-sm outline-none transition-all resize-none"
                 ></textarea>
@@ -179,15 +179,15 @@
               <div>
                 <label
                   class="block text-zinc-500 font-black uppercase text-[10px] tracking-widest mb-2"
-                  >To'lov usuli</label
+                  >{{ $t('payment_method') }}</label
                 >
                 <select
                   v-model="paymentMethod"
                   class="w-full bg-zinc-950 border border-zinc-800 focus:border-green-500 rounded-xl p-3 text-white text-sm outline-none transition-all cursor-pointer"
                 >
-                  <option value="Kelishuv asosida">Kelishuv asosida</option>
-                  <option value="Naqd pul">Naqd pul</option>
-                  <option value="Karta orqali">Karta orqali</option>
+                  <option value="Kelishuv asosida">{{ $t('payment_negotiable') }}</option>
+                  <option value="Naqd pul">{{ $t('payment_cash') }}</option>
+                  <option value="Karta orqali">{{ $t('payment_card') }}</option>
                 </select>
               </div>
 
@@ -202,7 +202,7 @@
                   :class="[location ? 'text-green-500' : 'text-zinc-500']"
                 >
                   {{
-                    location ? "Joylashuv aniqlandi" : "Joylashuv olinmoqda..."
+                    location ? $t('location_detected') : $t('getting_location')
                   }}
                 </span>
               </div>
@@ -211,7 +211,7 @@
             <div class="space-y-4 mb-8">
               <div class="flex justify-between text-sm">
                 <span class="text-zinc-500 font-bold uppercase tracking-widest"
-                  >Subtotal</span
+                  >{{ $t('subtotal') }}</span
                 >
                 <span class="font-black text-zinc-300 font-mono">
                   {{
@@ -259,7 +259,7 @@
               <div class="flex justify-between items-end pt-4">
                 <span
                   class="text-zinc-400 font-black uppercase text-xs tracking-[0.2em]"
-                  >Jami summa</span
+                  >{{ $t('grand_total') }}</span
                 >
                 <span
                   class="text-4xl font-black text-green-500 tracking-tighter font-mono"
@@ -294,13 +294,13 @@
                   class="bi bi-arrow-repeat animate-spin text-lg"
                 ></i>
                 <i v-else class="bi bi-credit-card text-lg"></i>
-                {{ loading ? "Jarayonda..." : "Buyurtma berish" }}
+                {{ loading ? $t('processing') : $t('place_order') }}
               </button>
               <button
                 @click="clearCart"
                 class="w-full py-4 bg-zinc-950 hover:bg-red-500 hover:text-white text-zinc-500 font-black uppercase tracking-widest text-xs rounded-xl border border-zinc-800 hover:border-red-500 transition-all"
               >
-                Savatni tozalash
+                {{ $t('clear_cart') }}
               </button>
             </div>
           </div>
@@ -345,7 +345,8 @@ export default {
   },
   mounted() {
     this.loadCart();
-    this.getLocation();
+    // Geolocation is requested lazily on checkout to avoid surprising the
+    // user with a permission prompt the moment they open the cart.
   },
   methods: {
     loadCart() {
@@ -368,7 +369,7 @@ export default {
         this.cartItems[index].quantity++;
         this.saveCart();
       } else {
-        toast.warning("Zaxirada boshqa mahsulot qolmagan");
+        toast.warning(this.$t("stock_limit_reached"));
       }
     },
     decreaseQuantity(index) {
@@ -378,13 +379,13 @@ export default {
       }
     },
     removeItem(index) {
-      if (confirm("Ushbu mahsulotni savatdan o'chirmoqchimisiz?")) {
+      if (confirm(this.$t("confirm_remove_item"))) {
         this.cartItems.splice(index, 1);
         this.saveCart();
       }
     },
     clearCart() {
-      if (confirm("Savatni butunlay tozalamoqchimisiz?")) {
+      if (confirm(this.$t("confirm_clear_cart"))) {
         this.cartItems = [];
         this.saveCart();
       }
@@ -399,8 +400,13 @@ export default {
     },
     async checkout() {
       if (!this.shippingAddress || this.shippingAddress.length < 5) {
-        toast.warning("Iltimos, yetkazib berish manzilini to'liq kiriting.");
+        toast.warning(this.$t("address_required"));
         return;
+      }
+
+      // Ask for location only when the user is actually placing an order.
+      if (!this.location) {
+        this.getLocation();
       }
 
       try {
@@ -408,7 +414,7 @@ export default {
         const token = localStorage.getItem("userToken");
 
         if (!token) {
-          toast.warning("Iltimos, avval login qiling.");
+          toast.warning(this.$t("please_login_first"));
           this.$router.push("/login");
           return;
         }
@@ -430,7 +436,7 @@ export default {
         // Use the new sendOrderToBackend function
         const result = await this.sendOrderToBackend(orderData);
 
-        toast.success("Buyurtma muvaffaqiyatli qabul qilindi!");
+        toast.success(this.$t("order_success"));
         localStorage.removeItem("cart");
         this.cartItems = [];
         this.saveCart();
@@ -443,7 +449,7 @@ export default {
       } catch (err) {
         console.error("Order error:", err.response?.data || err.message);
         toast.error(
-          err.response?.data?.message || "Buyurtma berishda xatolik yuz berdi.",
+          err.response?.data?.message || this.$t("order_error"),
         );
       } finally {
         this.loading = false;
@@ -460,9 +466,7 @@ export default {
           },
           (error) => {
             console.error("Geolocation error:", error);
-            toast.warning(
-              "Joylashuvni aniqlab bo'lmadi. Iltimos manzilingizni kiriting.",
-            );
+            toast.warning(this.$t("location_unavailable"));
           },
         );
       }
