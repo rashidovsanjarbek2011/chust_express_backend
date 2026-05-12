@@ -131,11 +131,29 @@ exports.getProducts = async (req, res) => {
     }
 
     if (search && typeof search === 'string' && search.trim()) {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-        { category: { contains: search, mode: 'insensitive' } }
-      ];
+      // Tokenise multi-word queries (e.g. "test product 1") so each token must
+      // appear in at least one of the searchable fields. Falls back to the
+      // original single-token behaviour when there is only one token.
+      const tokens = search
+        .trim()
+        .split(/\s+/)
+        .filter((t) => t.length > 0);
+
+      if (tokens.length === 1) {
+        where.OR = [
+          { name: { contains: tokens[0], mode: 'insensitive' } },
+          { description: { contains: tokens[0], mode: 'insensitive' } },
+          { category: { contains: tokens[0], mode: 'insensitive' } },
+        ];
+      } else {
+        where.AND = tokens.map((token) => ({
+          OR: [
+            { name: { contains: token, mode: 'insensitive' } },
+            { description: { contains: token, mode: 'insensitive' } },
+            { category: { contains: token, mode: 'insensitive' } },
+          ],
+        }));
+      }
     }
 
     // Parse pagination

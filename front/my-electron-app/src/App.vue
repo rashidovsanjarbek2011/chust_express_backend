@@ -21,6 +21,16 @@ export default {
     navbar,
     ToastNotification,
   },
+  watch: {
+    "$i18n.locale": {
+      immediate: true,
+      handler(locale) {
+        if (typeof document !== "undefined" && locale) {
+          document.documentElement.setAttribute("lang", locale);
+        }
+      },
+    },
+  },
 };
 </script>
 

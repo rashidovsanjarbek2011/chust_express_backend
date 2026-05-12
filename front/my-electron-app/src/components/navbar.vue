@@ -56,11 +56,16 @@
         <!-- Extra Button - Role-based visibility -->
 
         <!-- Cart Section -->
-        <router-link to="/cart" class="relative group flex-shrink-0">
+        <router-link
+          to="/cart"
+          class="relative group flex-shrink-0"
+          :aria-label="$t('cart')"
+          :title="$t('cart')"
+        >
           <div
             class="flex items-center justify-center text-xl h-[40px] w-[40px] text-white border-[2px] rounded-md dark:border-zinc-700 hover:bg-zinc-700 transition"
           >
-            <i class="bi bi-cart3"></i>
+            <i class="bi bi-cart3" aria-hidden="true"></i>
             <span
               v-if="cartCount > 0"
               class="absolute -top-2 -right-2 bg-red-600 text-white text-[9px] w-5 h-5 flex items-center justify-center rounded-full border-2 border-zinc-800"
@@ -150,7 +155,7 @@ export default {
       languages: {
         ru: "Русский",
         en: "English",
-        zh: "Chinese",
+        zh: "中文",
         uz: "O'zbekcha",
       },
     };
@@ -192,12 +197,14 @@ export default {
     const searchParam = this.$route.query.search;
     this.searchQuery = (typeof searchParam === 'string' ? searchParam : '') || "";
     window.addEventListener("userLoggedIn", this.loadUser);
+    window.addEventListener("userLoggedOut", this.handleLoggedOut);
     window.addEventListener("storage", this.handleStorageChange);
     window.addEventListener("cartUpdated", this.updateCartCount);
     document.addEventListener("click", this.closeDropdowns);
   },
   beforeUnmount() {
     window.removeEventListener("userLoggedIn", this.loadUser);
+    window.removeEventListener("userLoggedOut", this.handleLoggedOut);
     window.removeEventListener("storage", this.handleStorageChange);
     window.removeEventListener("cartUpdated", this.updateCartCount);
     document.removeEventListener("click", this.closeDropdowns);
@@ -263,6 +270,14 @@ export default {
     updateCartCount() {
       const cart = JSON.parse(localStorage.getItem("cart") || "[]");
       this.cartCount = cart.reduce((count, item) => count + item.quantity, 0);
+    },
+
+    // Sibling components (e.g. utils/auth.js) signal logout via this event.
+    // We need to clear the cached `user` immediately so the header chip
+    // doesn't stay stuck showing the previous user's name.
+    handleLoggedOut() {
+      this.user = null;
+      this.updateCartCount();
     },
 
     // User ma'lumotlarini yuklash

@@ -5,7 +5,7 @@
     <div class="premium-card w-full max-w-md p-8 md:p-10">
       <div class="text-center mb-10">
         <h1
-          class="text-4xl font-black text-green-500 tracking-tighter uppercase mb-2"
+          class="text-2xl sm:text-3xl md:text-4xl font-black text-green-500 tracking-tight uppercase mb-2 break-words"
         >
           {{$t('register')}}
         </h1>

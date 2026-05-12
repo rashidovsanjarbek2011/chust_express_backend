@@ -249,6 +249,7 @@
 <script>
 import axios from "axios";
 import toast from "@/services/toast";
+import { loadLeaflet } from "@/utils/leafletLoader";
 
 export default {
   name: "CreateDelivery",
@@ -282,6 +283,13 @@ export default {
   },
   async mounted() {
     await this.fetchDeliveryTypes();
+    try {
+      await loadLeaflet();
+    } catch (err) {
+      toast.error("Map could not be loaded: " + err.message);
+      this.loadingMap = false;
+      return;
+    }
     this.initMap();
   },
   methods: {

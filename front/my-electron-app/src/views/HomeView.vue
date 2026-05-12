@@ -125,7 +125,7 @@
       <!-- Loading/Error States -->
       <div
         v-if="loading"
-        class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8"
+        class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-8"
       >
         <div
           v-for="i in 8"
@@ -153,7 +153,7 @@
       <!-- Product Grid -->
       <div
         v-else
-        class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-8"
+        class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-8"
       >
         <router-link
           v-for="item in products"
@@ -235,6 +235,7 @@
 <script>
 import axios from "axios";
 import loader from "@/components/loader.vue";
+import { PRODUCT_IMAGE_PLACEHOLDER } from "@/utils/imageUtils";
 
 // Category translations for all 4 languages
 const categoryTranslations = {
@@ -473,11 +474,11 @@ export default {
       }
       
       // Fallback to placeholder
-      return 'https://placehold.co/400x300?text=No+Image';
+      return PRODUCT_IMAGE_PLACEHOLDER;
     },
 
     handleImageError(event) {
-      event.target.src = 'https://placehold.co/400x300?text=No+Image';
+      event.target.src = PRODUCT_IMAGE_PLACEHOLDER;
     },
 
     async fetchCategories() {

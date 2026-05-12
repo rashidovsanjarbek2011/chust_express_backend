@@ -8,17 +8,17 @@
           <h1
             class="text-4xl font-black text-green-500 tracking-tighter uppercase"
           >
-            Profil
+            {{ $t('profile_title') }}
           </h1>
           <p class="text-zinc-500 text-sm">
-            Shaxsiy ma'lumotlaringiz va sozlamalar
+            {{ $t('profile_subtitle') }}
           </p>
         </div>
         <button
           @click="handleLogout"
           class="px-6 py-3 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white font-black uppercase tracking-widest text-[10px] rounded-xl transition-all border border-red-500/20"
         >
-          Chiqish
+          {{ $t('logout') }}
         </button>
       </div>
 
@@ -63,7 +63,7 @@
             <div class="space-y-1">
               <label
                 class="text-zinc-500 font-black uppercase text-[10px] tracking-widest"
-                >E-pochta</label
+                >{{ $t('email_label') }}</label
               >
               <p
                 class="text-white font-bold bg-zinc-900/50 p-4 rounded-xl border border-zinc-800"
@@ -75,12 +75,48 @@
             <div class="space-y-1">
               <label
                 class="text-zinc-500 font-black uppercase text-[10px] tracking-widest"
-                >A'zo bo'lgan sana</label
+                >{{ $t('member_since') }}</label
               >
               <p
                 class="text-white font-bold bg-zinc-900/50 p-4 rounded-xl border border-zinc-800"
               >
                 {{ new Date(user.createdAt).toLocaleDateString() }}
+              </p>
+            </div>
+
+            <div v-if="user.phoneNumber || user.phoneNumber === ''" class="space-y-1">
+              <label
+                class="text-zinc-500 font-black uppercase text-[10px] tracking-widest"
+                >{{ $t('phone_label') }}</label
+              >
+              <p
+                class="text-white font-bold bg-zinc-900/50 p-4 rounded-xl border border-zinc-800 font-mono"
+              >
+                {{ user.phoneNumber || $t('not_set') }}
+              </p>
+            </div>
+
+            <div v-if="user.address || user.address === ''" class="space-y-1">
+              <label
+                class="text-zinc-500 font-black uppercase text-[10px] tracking-widest"
+                >{{ $t('address_label') }}</label
+              >
+              <p
+                class="text-white font-bold bg-zinc-900/50 p-4 rounded-xl border border-zinc-800"
+              >
+                {{ user.address || $t('not_set') }}
+              </p>
+            </div>
+
+            <div v-if="user.cardNumber" class="space-y-1">
+              <label
+                class="text-zinc-500 font-black uppercase text-[10px] tracking-widest"
+                >{{ $t('card_label') }}</label
+              >
+              <p
+                class="text-white font-bold bg-zinc-900/50 p-4 rounded-xl border border-zinc-800 font-mono tracking-widest"
+              >
+                {{ formatCardNumber(user.cardNumber) }}
               </p>
             </div>
 
@@ -92,13 +128,13 @@
               <div class="flex justify-between items-center">
                 <label
                   class="text-zinc-500 font-black uppercase text-[10px] tracking-widest"
-                  >Do'kon Joylashuvi</label
+                  >{{ $t('shop_location') }}</label
                 >
                 <div
                   v-if="user.latitude"
                   class="text-green-500 text-[10px] font-bold uppercase flex items-center gap-1"
                 >
-                  <i class="bi bi-check-circle-fill"></i> O'rnatilgan
+                  <i class="bi bi-check-circle-fill"></i> {{ $t('shop_location_set') }}
                 </div>
               </div>
 
@@ -110,11 +146,11 @@
                     {{
                       user.latitude
                         ? `${user.latitude.toFixed(6)}, ${user.longitude.toFixed(6)}`
-                        : "Joylashuv belgilanmagan"
+                        : $t('shop_location_not_set')
                     }}
                   </p>
                   <p class="text-[10px] text-zinc-600">
-                    Buyurtmalar uchun olib ketish manzili sifatida ishlatiladi.
+                    {{ $t('shop_location_help') }}
                   </p>
                 </div>
                 <button
@@ -127,7 +163,7 @@
                     class="bi bi-arrow-repeat animate-spin"
                   ></i>
                   <i v-else class="bi bi-geo-alt-fill"></i>
-                  {{ user.latitude ? "Yangilash" : "O'rnatish" }}
+                  {{ user.latitude ? $t('update') : $t('set') }}
                 </button>
               </div>
             </div>
@@ -141,7 +177,7 @@
             >
               <label
                 class="text-zinc-500 font-black uppercase text-[10px] tracking-widest"
-                >Joylashuv (Lat/Lng)</label
+                >{{ $t('shop_location') }} (Lat/Lng)</label
               >
               <p
                 class="text-white font-mono font-bold bg-zinc-900/50 p-4 rounded-xl border border-zinc-800"
@@ -155,13 +191,13 @@
               v-if="user.role === 'delivery' || user.isDelivery"
               class="space-y-3 pt-4 border-t border-zinc-800 md:col-span-2"
             >
-              <label class="text-zinc-500 font-black uppercase text-[10px] tracking-widest">Ish Maydoni (Xaritalash uchun)</label>
+              <label class="text-zinc-500 font-black uppercase text-[10px] tracking-widest">{{ $t('working_area') }}</label>
               <div class="flex gap-4 items-center bg-zinc-900/50 p-4 rounded-xl border border-zinc-800">
                 <div class="flex-grow">
                   <input
                     v-model="user.workingRegion"
                     type="text"
-                    placeholder="Masalan: Chilonzor, Yunusobod..."
+                    :placeholder="$t('working_area_placeholder')"
                     class="w-full bg-transparent text-white font-bold outline-none border-none placeholder:text-zinc-700 p-0"
                   />
                 </div>
@@ -172,10 +208,10 @@
                 >
                   <i v-if="updatingRegion" class="bi bi-arrow-repeat animate-spin"></i>
                   <i v-else class="bi bi-save-fill"></i>
-                  Saqlash
+                  {{ $t('save') }}
                 </button>
               </div>
-              <p class="text-[9px] text-zinc-600 italic">* Kuryer sifatida manzillarni xaritalash uchun foydalaniladi.</p>
+              <p class="text-[9px] text-zinc-600 italic">{{ $t('working_area_hint') }}</p>
             </div>
 
             <!-- Vehicle Type Selection -->
@@ -185,7 +221,7 @@
             >
               <label
                 class="text-zinc-500 font-black uppercase text-[10px] tracking-widest"
-                >Transport Turi</label
+                >{{ $t('vehicle_type') }}</label
               >
               <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <button
@@ -210,7 +246,7 @@
                   ></i>
                   <span
                     class="font-black uppercase text-[10px] tracking-widest"
-                    >{{ type.label }}</span
+                    >{{ $t(type.labelKey) }}</span
                   >
                 </button>
               </div>
@@ -228,7 +264,7 @@
             }}</span>
             <span
               class="text-zinc-500 font-black uppercase text-[10px] tracking-widest"
-              >Umumiy buyurtmalar</span
+              >{{ $t('total_orders_label') }}</span
             >
           </div>
           <div
@@ -240,7 +276,7 @@
             }}</span>
             <span
               class="text-zinc-500 font-black uppercase text-[10px] tracking-widest"
-              >Mahsulotlar</span
+              >{{ $t('products_label') }}</span
             >
           </div>
           <div
@@ -252,7 +288,7 @@
             }}</span>
             <span
               class="text-zinc-500 font-black uppercase text-[10px] tracking-widest"
-              >Yetkazmalar</span
+              >{{ $t('deliveries_label') }}</span
             >
           </div>
         </div>
@@ -277,9 +313,9 @@ export default {
       updatingLocation: false,
       updatingRegion: false,
       vehicles: [
-        { label: "Piyoda", value: "ON_FOOT", icon: "bi bi-person-walking" },
-        { label: "Avtomobil", value: "CAR", icon: "bi bi-car-front" },
-        { label: "Yuk mashinasi", value: "TRUCK", icon: "bi bi-truck" },
+        { labelKey: "vehicle_on_foot", value: "ON_FOOT", icon: "bi bi-person-walking" },
+        { labelKey: "vehicle_car", value: "CAR", icon: "bi bi-car-front" },
+        { labelKey: "vehicle_truck", value: "TRUCK", icon: "bi bi-truck" },
       ],
     };
   },
@@ -290,7 +326,7 @@ export default {
   methods: {
     async updateLocation() {
       if (!("geolocation" in navigator)) {
-        toast.warning("Geolakatsiya brauzeringizda qo'llab-quvvatlanmaydi.");
+        toast.warning(this.$t("geolocation_unsupported"));
         return;
       }
 
@@ -312,17 +348,17 @@ export default {
             // Update local user data
             this.user.latitude = latitude;
             this.user.longitude = longitude;
-            toast.success("Joylashuv muvaffaqiyatli yangilandi!");
+            toast.success(this.$t("location_updated"));
           } catch (err) {
             console.error(err);
-            toast.error("Joylashuvni saqlashda xatolik yuz berdi.");
+            toast.error(this.$t("location_save_error"));
           } finally {
             this.updatingLocation = false;
           }
         },
         (error) => {
           console.error(error);
-          toast.error("Joylashuvni aniqlashda xatolik: " + error.message);
+          toast.error(this.$t("location_save_error") + " " + error.message);
           this.updatingLocation = false;
         },
         { enableHighAccuracy: true },
@@ -339,14 +375,14 @@ export default {
           },
         );
         this.user.vehicleType = vehicleType;
-        toast.success("Transport turi muvaffaqiyatli saqlandi!");
+        toast.success(this.$t("vehicle_updated"));
       } catch (err) {
-        toast.error("Xatolik yuz berdi.");
+        toast.error(this.$t("unknown_error"));
       }
     },
     async updateWorkingRegion() {
       if (!this.user.workingRegion || !this.user.workingRegion.trim()) {
-        toast.warning("Iltimos, ish maydonini kiriting.");
+        toast.warning(this.$t("working_area_required"));
         return;
       }
 
@@ -360,10 +396,10 @@ export default {
             headers: { Authorization: `Bearer ${token}` },
           },
         );
-        toast.success("Ish maydoni muvaffaqiyatli yangilandi!");
+        toast.success(this.$t("working_area_updated"));
       } catch (err) {
         console.error(err);
-        toast.error("Ish maydonini saqlashda xatolik yuz berdi.");
+        toast.error(this.$t("working_area_save_error"));
       } finally {
         this.updatingRegion = false;
       }
@@ -385,7 +421,7 @@ export default {
         this.user = res.data.data;
       } catch (err) {
         this.error =
-          err.response?.data?.message || "Profilni olishda xatolik yuz berdi.";
+          err.response?.data?.message || this.$t("profile_load_error");
         if (err.response?.status === 401) {
           logout();
           this.router.push({ name: "login" });
@@ -393,6 +429,13 @@ export default {
       } finally {
         this.loading = false;
       }
+    },
+    formatCardNumber(card) {
+      if (!card) return "";
+      const digits = String(card).replace(/\D/g, "");
+      if (digits.length < 4) return digits;
+      const last4 = digits.slice(-4);
+      return `•••• •••• •••• ${last4}`;
     },
     handleLogout() {
       logout();

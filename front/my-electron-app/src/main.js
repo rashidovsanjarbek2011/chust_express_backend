@@ -29,5 +29,41 @@ if (baseURL === "") {
 
 axios.defaults.baseURL = baseURL;
 
+// Attach the auth token (if any) to every outgoing request so views like
+// product detail, profile, cart, etc. don't each have to remember to do it.
+// Falls back to the legacy "token" key if "userToken" isn't set.
+axios.interceptors.request.use((config) => {
+  const token =
+    localStorage.getItem("userToken") || localStorage.getItem("token");
+  if (token) {
+    config.headers = config.headers || {};
+    if (!config.headers.Authorization) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
+});
+
+// On 401, treat the session as expired: clear any stale auth and let the
+// rest of the app react via the userLoggedOut event.
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error?.response?.status === 401) {
+      const hadToken =
+        !!localStorage.getItem("userToken") ||
+        !!localStorage.getItem("token");
+      if (hadToken) {
+        localStorage.removeItem("userToken");
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        delete axios.defaults.headers.common["Authorization"];
+        window.dispatchEvent(new Event("userLoggedOut"));
+      }
+    }
+    return Promise.reject(error);
+  },
+);
+
 app.mount("#app");
 

@@ -51,7 +51,7 @@
               @touchend="handleTouchEnd"
             >
               <img
-                v-if="currentImage && currentImage !== 'https://placehold.co/400x300?text=No+Image'"
+                v-if="currentImage && currentImage !== PRODUCT_IMAGE_PLACEHOLDER"
                 :src="currentImage"
                 :alt="food?.name || 'Product image'"
                 class="w-full h-full object-cover transition-transform duration-500"
@@ -659,7 +659,11 @@
 import { useRoute } from "vue-router";
 import axios from "axios";
 import toast from "@/services/toast";
-import { getProductImage, getAllProductImages } from "@/utils/imageUtils";
+import {
+  getProductImage,
+  getAllProductImages,
+  PRODUCT_IMAGE_PLACEHOLDER,
+} from "@/utils/imageUtils";
 
 
 
@@ -682,6 +686,7 @@ export default {
       isImageZoomed: false,
       touchStartX: 0,
       touchEndX: 0,
+      PRODUCT_IMAGE_PLACEHOLDER,
       editForm: {
         name: "",
         price: 0,
@@ -722,7 +727,7 @@ export default {
       // Filter out null, undefined, or placeholder images
       return this.foodImages.filter(img =>
         img &&
-        img !== 'https://placehold.co/400x300?text=No+Image' &&
+        img !== PRODUCT_IMAGE_PLACEHOLDER &&
         img !== 'null' &&
         img !== 'undefined'
       );
@@ -736,7 +741,7 @@ export default {
       }
 
       // If there are no valid images, fall back to the first returned image (including placeholder)
-      const firstImage = this.foodImages[0] || "https://placehold.co/400x300?text=No+Image";
+      const firstImage = this.foodImages[0] || PRODUCT_IMAGE_PLACEHOLDER;
       return firstImage;
     },
     canScrollLeft() {
@@ -774,7 +779,7 @@ export default {
   },
   methods: {
     handleImageError(e) {
-      e.target.src = 'https://placehold.co/400x300?text=No+Image';
+      e.target.src = PRODUCT_IMAGE_PLACEHOLDER;
       // eslint-disable-next-line no-console
       if (this.food && this.food.name) {
         console.warn(`Main image missing or broken for food: ${this.food.name} (ID: ${this.food.id})`, this.food.image);
@@ -782,7 +787,7 @@ export default {
     },
     handleThumbnailError(index) {
       return (e) => {
-        e.target.src = 'https://placehold.co/400x300?text=No+Image';
+        e.target.src = PRODUCT_IMAGE_PLACEHOLDER;
         // eslint-disable-next-line no-console
         if (this.food && this.food.name) {
           console.warn(`Thumbnail image missing or broken for food: ${this.food.name} (ID: ${this.food.id}), index: ${index}`, this.validImages);
