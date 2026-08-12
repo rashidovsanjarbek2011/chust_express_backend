@@ -25,24 +25,47 @@ const app = express();
 const server = http.createServer(app);
 
 // ======================
-// CORS CONFIGURATION (FIXED)
+// CORS CONFIGURATION (FULLY FIXED FOR PUBLIC)
 // ======================
 const allowedOrigins = [
+  // Production frontend domains
+  "https://express-chust.netlify.app",
+  "https://chust-express-frontend.onrender.com",
+  "https://chust-express.vercel.app",
+  "https://chustexpress.uz",
+  "https://www.chustexpress.uz",
+  
   // Local development
-  "express-chust.netlify.app"
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "http://localhost:8080",
+  "http://127.0.0.1:5173",
+  "http://127.0.0.1:3000",
+  
+  // Mobile apps
+  "capacitor://localhost",
+  "ionic://localhost",
 ];
+
+console.log("🔗 CORS Allowed Origins:", allowedOrigins);
 
 app.use(
   cors({
     origin: function (origin, callback) {
       // Allow requests with no origin (mobile apps, curl, etc.)
-      if (!origin) return callback(null, true);
+      if (!origin) {
+        console.log("✅ Request with no origin allowed");
+        return callback(null, true);
+      }
       
-      if (allowedOrigins.includes(origin) || process.env.NODE_ENV === "development") {
+      // Check if origin is allowed
+      if (allowedOrigins.includes(origin)) {
+        console.log(`✅ CORS allowed: ${origin}`);
         callback(null, true);
       } else {
-        console.warn(`CORS blocked: ${origin}`);
-        callback(new Error("Not allowed by CORS"));
+        console.warn(`❌ CORS blocked: ${origin}`);
+        console.warn(`   Allowed origins: ${allowedOrigins.join(", ")}`);
+        callback(new Error(`Origin ${origin} not allowed by CORS`));
       }
     },
     credentials: true,
@@ -70,7 +93,6 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
     credentials: true,
   },
-  // Optimize for production
   pingTimeout: 60000,
   pingInterval: 25000,
 });
@@ -81,16 +103,20 @@ app.use((req, res, next) => {
 });
 
 io.on("connection", (socket) => {
-  console.log("New client connected");
+  console.log("🟢 New client connected");
   socket.on("disconnect", () => {
-    console.log("Client disconnected");
+    console.log("🔴 Client disconnected");
   });
 });
 
 // ======================
 // CORE MIDDLEWARE
 // ======================
-app.use(helmet({ crossOriginResourcePolicy: false }));
+app.use(helmet({ 
+  crossOriginResourcePolicy: false,
+  crossOriginOpenerPolicy: false,
+  crossOriginEmbedderPolicy: false,
+}));
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
@@ -117,7 +143,7 @@ const adminRoutes = require("./routes/adminRoutes");
 const extraRoutes = require("./routes/extra.routes");
 
 // ======================
-// HEALTH CHECK ENDPOINT (IMPROVED)
+// HEALTH CHECK ENDPOINT
 // ======================
 app.get("/api/health", async (req, res) => {
   try {
@@ -126,7 +152,8 @@ app.get("/api/health", async (req, res) => {
       status: "ok",
       database: "connected",
       timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV || "production"
+      environment: process.env.NODE_ENV || "production",
+      cors: "enabled"
     });
   } catch (error) {
     console.error("Health check failed:", error);
@@ -140,7 +167,7 @@ app.get("/api/health", async (req, res) => {
 });
 
 // ======================
-// EMERGENCY DB SETUP (RUN PRISMA DB PUSH FOR POSTGRESQL)
+// EMERGENCY DB SETUP
 // ======================
 app.get("/api/setup-db", async (req, res) => {
   const { secret } = req.query;
@@ -181,7 +208,7 @@ app.get("/api/setup-db", async (req, res) => {
 });
 
 // ======================
-// TEMPORARY MIGRATION ENDPOINT (ONE-TIME USE)
+// MIGRATION ENDPOINT
 // ======================
 app.get("/api/migrate", async (req, res) => {
   const { secret } = req.query;
@@ -192,7 +219,6 @@ app.get("/api/migrate", async (req, res) => {
   try {
     const results = [];
 
-    // 1. Check if column "images" exists and rename to "image" if it does
     const checkColumn = await req.prisma.$queryRaw`
       SELECT column_name 
       FROM information_schema.columns 
@@ -203,7 +229,6 @@ app.get("/api/migrate", async (req, res) => {
       await req.prisma.$executeRaw`ALTER TABLE "Product" RENAME COLUMN "images" TO "image"`;
       results.push("Renamed column 'images' to 'image'.");
     } else {
-      // 2. If "image" doesn't exist, create it (fallback)
       const checkImage = await req.prisma.$queryRaw`
         SELECT column_name 
         FROM information_schema.columns 
@@ -217,7 +242,6 @@ app.get("/api/migrate", async (req, res) => {
       }
     }
 
-    // 3. Regenerate Prisma Client (to ensure it matches schema)
     const { exec } = require("child_process");
     exec("npx prisma generate", (err, stdout, stderr) => {
       if (err) {
@@ -287,16 +311,15 @@ app.use((err, req, res, next) => {
 });
 
 // ======================
-// SERVER STARTUP (RESILIENT VERSION - FIXED)
+// SERVER STARTUP
 // ======================
 const PORT = process.env.PORT || 5000;
 
 const startServer = async (retryCount = 0) => {
   const maxRetries = 5;
-  const retryDelay = 5000; // 5 seconds between retries
+  const retryDelay = 5000;
   
   try {
-    // Try to connect to database with timeout
     await Promise.race([
       prisma.$connect(),
       new Promise((_, reject) => 
@@ -306,10 +329,10 @@ const startServer = async (retryCount = 0) => {
     
     console.log("✅ Database bilan ulanish muvaffaqiyatli");
     
-    // Start server only after DB connection
     server.listen(PORT, '0.0.0.0', () => {
-      console.log(`✅ Server ${PORT}-portda ishga tushdi (Available on network)`);
-      console.log(`📍 Health check: http://localhost:${PORT}/api/health`);
+      console.log(`✅ Server ${PORT}-portda ishga tushdi`);
+      console.log(`📍 Health check: https://chust-express-backend.onrender.com/api/health`);
+      console.log(`🔗 CORS allowed origins:`, allowedOrigins.length, "origins");
     });
     
     server.on("error", (err) => {
@@ -327,15 +350,13 @@ const startServer = async (retryCount = 0) => {
     console.error("Error message:", error.message);
     
     if (retryCount < maxRetries) {
-      console.log(`🔄 Retrying in ${retryDelay/1000} seconds... (${retryCount + 1}/${maxRetries})`);
+      console.log(`🔄 Retrying in ${retryDelay/1000} seconds...`);
       setTimeout(() => startServer(retryCount + 1), retryDelay);
     } else {
-      console.error("❌ All database connection attempts failed. Starting server WITHOUT database...");
+      console.error("❌ All database connection attempts failed.");
       console.warn("⚠️ API endpoints that need database will return errors");
       console.warn("⚠️ Check your DATABASE_URL environment variable on Render");
-      console.warn("⚠️ Expected format: postgresql://user:pass@host:port/db?sslmode=require");
       
-      // Start server anyway - at least health check can respond
       server.listen(PORT, '0.0.0.0', () => {
         console.log(`⚠️ Server started WITHOUT database on port ${PORT}`);
         console.log(`⚠️ Some endpoints will return errors until database connects`);
@@ -344,7 +365,7 @@ const startServer = async (retryCount = 0) => {
   }
 };
 
-// Graceful shutdown handler
+// Graceful shutdown handlers
 process.on('SIGINT', async () => {
   console.log('\n🛑 Shutting down gracefully...');
   try {
