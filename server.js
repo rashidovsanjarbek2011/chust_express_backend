@@ -27,25 +27,58 @@ const server = http.createServer(app);
 // ======================
 // CORS CONFIGURATION (FULLY FIXED FOR PUBLIC)
 // ======================
+// ======================
+// CORS CONFIGURATION
+// ======================
 const allowedOrigins = [
-  // Production frontend domains
+  // Your Netlify frontend (WITH https://)
   "https://express-chust.netlify.app",
+  
+  // Other frontend domains
   "https://chust-express-frontend.onrender.com",
   "https://chust-express.vercel.app",
-  "https://chustexpress.uz",
-  "https://www.chustexpress.uz",
   
   // Local development
   "http://localhost:5173",
   "http://localhost:3000",
-  "http://localhost:8080",
   "http://127.0.0.1:5173",
-  "http://127.0.0.1:3000",
-  
-  // Mobile apps
-  "capacitor://localhost",
-  "ionic://localhost",
 ];
+
+console.log("🔗 CORS Allowed Origins:", allowedOrigins);
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // Allow requests with no origin
+      if (!origin) {
+        console.log("✅ Request with no origin allowed");
+        return callback(null, true);
+      }
+      
+      // Check if origin is allowed (with proper matching)
+      if (allowedOrigins.includes(origin)) {
+        console.log(`✅ CORS allowed: ${origin}`);
+        callback(null, true);
+      } else {
+        console.warn(`❌ CORS blocked: ${origin}`);
+        callback(new Error(`Origin ${origin} not allowed by CORS`));
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "Accept",
+      "X-Requested-With",
+      "Accept-Language",
+      "Access-Control-Request-Method",
+      "Access-Control-Request-Headers",
+    ],
+    exposedHeaders: ["Content-Type", "Authorization"],
+    optionsSuccessStatus: 200,
+  })
+);
 
 console.log("🔗 CORS Allowed Origins:", allowedOrigins);
 
