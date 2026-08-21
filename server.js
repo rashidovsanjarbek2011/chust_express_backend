@@ -33,15 +33,14 @@ const server = http.createServer(app);
 const allowedOrigins = [
   // Your Netlify frontend (WITH https://)
   "https://express-chust.netlify.app",
-  
-  // Other frontend domains
-  "https://chust-express-frontend.onrender.com",
-  "https://chust-express.vercel.app",
-  
-  // Local development
-  "http://localhost:5173",
-  "http://localhost:3000",
-  "http://127.0.0.1:5173",
+
+// Local development
+"http://localhost:5173",
+"http://localhost:3000",
+"http://127.0.0.1:5173",
+"https://express-panel-admin.netlify.app",
+"http://localhost:5173",
+"https://manager-panel-express.netlify.app"
 ];
 
 console.log("🔗 CORS Allowed Origins:", allowedOrigins);
@@ -54,7 +53,7 @@ app.use(
         console.log("✅ Request with no origin allowed");
         return callback(null, true);
       }
-      
+
       // Check if origin is allowed (with proper matching)
       if (allowedOrigins.includes(origin)) {
         console.log(`✅ CORS allowed: ${origin}`);
@@ -90,7 +89,7 @@ app.use(
         console.log("✅ Request with no origin allowed");
         return callback(null, true);
       }
-      
+
       // Check if origin is allowed
       if (allowedOrigins.includes(origin)) {
         console.log(`✅ CORS allowed: ${origin}`);
@@ -145,7 +144,7 @@ io.on("connection", (socket) => {
 // ======================
 // CORE MIDDLEWARE
 // ======================
-app.use(helmet({ 
+app.use(helmet({
   crossOriginResourcePolicy: false,
   crossOriginOpenerPolicy: false,
   crossOriginEmbedderPolicy: false,
@@ -185,8 +184,8 @@ app.get("/api/health", async (req, res) => {
       status: "ok",
       database: "connected",
       timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV || "production",
-      cors: "enabled"
+                         environment: process.env.NODE_ENV || "production",
+                         cors: "enabled"
     });
   } catch (error) {
     console.error("Health check failed:", error);
@@ -210,14 +209,14 @@ app.get("/api/setup-db", async (req, res) => {
 
   try {
     const { execSync } = require("child_process");
-    
+
     console.log("🔄 Pushing schema to database...");
     const pushOutput = execSync("npx prisma db push --accept-data-loss", {
       encoding: "utf-8",
       stdio: ["pipe", "pipe", "pipe"],
       timeout: 120000,
     });
-    
+
     console.log("🔄 Generating Prisma client...");
     const generateOutput = execSync("npx prisma generate", {
       encoding: "utf-8",
@@ -253,9 +252,9 @@ app.get("/api/migrate", async (req, res) => {
     const results = [];
 
     const checkColumn = await req.prisma.$queryRaw`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name='Product' AND column_name='images'
+    SELECT column_name
+    FROM information_schema.columns
+    WHERE table_name='Product' AND column_name='images'
     `;
 
     if (checkColumn.length > 0) {
@@ -263,9 +262,9 @@ app.get("/api/migrate", async (req, res) => {
       results.push("Renamed column 'images' to 'image'.");
     } else {
       const checkImage = await req.prisma.$queryRaw`
-        SELECT column_name 
-        FROM information_schema.columns 
-        WHERE table_name='Product' AND column_name='image'
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_name='Product' AND column_name='image'
       `;
       if (checkImage.length === 0) {
         await req.prisma.$executeRaw`ALTER TABLE "Product" ADD COLUMN "image" TEXT`;
@@ -351,23 +350,23 @@ const PORT = process.env.PORT || 5000;
 const startServer = async (retryCount = 0) => {
   const maxRetries = 5;
   const retryDelay = 5000;
-  
+
   try {
     await Promise.race([
       prisma.$connect(),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Database connection timeout after 10s')), 10000)
-      )
+                       new Promise((_, reject) =>
+                       setTimeout(() => reject(new Error('Database connection timeout after 10s')), 10000)
+                       )
     ]);
-    
+
     console.log("✅ Database bilan ulanish muvaffaqiyatli");
-    
+
     server.listen(PORT, '0.0.0.0', () => {
       console.log(`✅ Server ${PORT}-portda ishga tushdi`);
       console.log(`📍 Health check: https://chust-express-backend.onrender.com/api/health`);
       console.log(`🔗 CORS allowed origins:`, allowedOrigins.length, "origins");
     });
-    
+
     server.on("error", (err) => {
       if (err.code === "EADDRINUSE") {
         console.error(`❌ Port ${PORT} allaqachon ishlatilmoqda`);
@@ -377,11 +376,11 @@ const startServer = async (retryCount = 0) => {
         throw err;
       }
     });
-    
+
   } catch (error) {
     console.error(`❌ Database connection attempt ${retryCount + 1}/${maxRetries + 1} failed`);
     console.error("Error message:", error.message);
-    
+
     if (retryCount < maxRetries) {
       console.log(`🔄 Retrying in ${retryDelay/1000} seconds...`);
       setTimeout(() => startServer(retryCount + 1), retryDelay);
@@ -389,7 +388,7 @@ const startServer = async (retryCount = 0) => {
       console.error("❌ All database connection attempts failed.");
       console.warn("⚠️ API endpoints that need database will return errors");
       console.warn("⚠️ Check your DATABASE_URL environment variable on Render");
-      
+
       server.listen(PORT, '0.0.0.0', () => {
         console.log(`⚠️ Server started WITHOUT database on port ${PORT}`);
         console.log(`⚠️ Some endpoints will return errors until database connects`);
