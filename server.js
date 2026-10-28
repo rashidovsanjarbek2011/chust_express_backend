@@ -166,7 +166,9 @@ app.get("/api/health", async (req, res) => {
 // ======================
 app.get("/api/setup-db", async (req, res) => {
   const { secret } = req.query;
-  if (secret !== process.env.MIGRATE_SECRET) {
+  const expectedSecret = process.env.MIGRATE_SECRET;
+
+  if (!expectedSecret || secret !== expectedSecret) {
     return res.status(403).json({ error: "Unauthorized - need secret" });
   }
 
@@ -207,7 +209,9 @@ app.get("/api/setup-db", async (req, res) => {
 // ======================
 app.get("/api/migrate", async (req, res) => {
   const { secret } = req.query;
-  if (secret !== process.env.MIGRATE_SECRET) {
+  const expectedSecret = process.env.MIGRATE_SECRET;
+
+  if (!expectedSecret || secret !== expectedSecret) {
     return res.status(403).json({ error: "Unauthorized" });
   }
 
